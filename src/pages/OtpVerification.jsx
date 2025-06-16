@@ -8,6 +8,13 @@ function OtpVerification() {
   const [otp, setOtp] = useState("");
   const [cooldown, setCooldown] = useState(0);
   const navigate = useNavigate();
+  const token = localStorage.getItem("token");
+
+  useEffect(() => {
+    if (token) {
+      navigate("/"); // or /admin based on role
+    }
+  }, []);
 
   useEffect(() => {
     const storedEmail = localStorage.getItem("pendingEmail");
@@ -31,11 +38,8 @@ function OtpVerification() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-        setLoading(true);
         await api.post("/auth/verify-otp", { email, otp });
         alert("OTP verified! You can now log in.");
-        localStorage.removeItem("pendingEmail");
-        setLoading(false);
         navigate("/login");
     } catch (err) {
       alert("Invalid or expired OTP. Please try again.");

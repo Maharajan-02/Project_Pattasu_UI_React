@@ -1,36 +1,41 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import Loader from "../components/Loader";
+import api from "../axios";
 
 function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const navigate = useNavigate();
+  const token = localStorage.getItem("token");
+
+  useEffect(() => {
+    if (token) {
+      navigate("/"); // or /admin based on role
+    }
+  }, []);
 
   const handleLogin = async (e) => {
     e.preventDefault();
     try {
-        setLoading(true);
       const res = await api.post(
             `auth/login`,
         { email, password }
       );
-
+      console.log("Login response:", res.data);
       const { token, role } = res.data;
 
       localStorage.setItem("token", token);
       localStorage.setItem("role", role);
-
-      if (role === "ADMIN") {
+      if (role === "admin") {
         navigate("/admin");
       } else {
         navigate("/");
       }
+
     } catch (error) {
       alert("Login failed. Check your credentials.");
-    } finally {
-        setLoading(false);
     }
   };
 

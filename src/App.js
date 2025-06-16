@@ -1,8 +1,6 @@
-import React from "react";
+import React, { useState } from "react";
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
-
-import Navbar from "./components/Navbar.jsx";
-
+import Navbar from "./components/Navbar";
 import Home from "./pages/Home";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
@@ -16,16 +14,21 @@ import Analytics from "./pages/Analytics";
 import Contact from "./pages/Contact";
 
 function App() {
+  const [searchQuery, setSearchQuery] = useState("");
+  const isAuthenticated = !!localStorage.getItem("token");
   return (
     <Router>
-      <Navbar />
+      <Navbar onSearch={setSearchQuery} />
       <Routes>
-        <Route path="/" element={<Home />} />
-
+        <Route path="/" element={<Home searchQuery={searchQuery} />} />
         {/* Auth */}
-        <Route path="/login" element={<Login />} />
+        {/* <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
-        <Route path="/otp" element={<OtpVerification />} />
+        <Route path="/otp" element={<OtpVerification />} /> */}
+
+        <Route path="/login" element={isAuthenticated ? <Navigate to="/" /> : <Login />} />
+        <Route path="/register" element={isAuthenticated ? <Navigate to="/" /> : <Register />} />
+        <Route path="/otp" element={isAuthenticated ? <Navigate to="/" /> : <OtpVerification />} />
 
         {/* User Routes */}
         <Route path="/cart" element={<Cart />} />

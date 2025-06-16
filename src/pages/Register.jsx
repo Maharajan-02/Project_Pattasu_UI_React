@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../axios";
 import Loader from "../components/Loader";
@@ -11,6 +11,14 @@ function Register() {
     phoneNumber: "",
   });
 
+  const token = localStorage.getItem("token");
+
+  useEffect(() => {
+    if (token) {
+      navigate("/"); // or /admin based on role
+    }
+  }, []);
+
   const navigate = useNavigate();
 
   const handleChange = (e) => {
@@ -21,9 +29,7 @@ function Register() {
     e.preventDefault();
 
     try {
-        setLoading(true);
         await api.post("/auth/register", form);
-        setLoading(false);
         alert("OTP sent to your email.");
         localStorage.setItem("pendingEmail", form.email);       
         navigate("/otp", { state: { email: form.email } });
