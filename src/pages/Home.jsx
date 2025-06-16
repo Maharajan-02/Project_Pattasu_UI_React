@@ -1,0 +1,161 @@
+import React, { useEffect, useState } from "react";
+import api from "../axios";
+import Loader from "../components/Loader";
+
+function Home() {
+  const [products, setProducts] = useState([]);
+  const [cart, setCart] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [updatingProductId, setUpdatingProductId] = useState(null);
+  const [page, setPage] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
+
+  const token = localStorage.getItem("token");
+
+  const fetchProducts = async (pageNumber) => {
+    setLoading(true);
+    try {
+      const res = await api.get(`/products?page=${pageNumber}&size=8`);
+      setProducts(res.data.content || []);
+      setTotalPages(res.data.totalPages);
+    } catch (err) {
+      console.error("Error loading products", err);
+    }
+    setLoading(false);
+  };
+
+  const fetchCart = async () => {
+    if (!token) return;
+    try {
+      const res = await api.get("/cart", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setCart(res.data);
+    } catch (err) {
+      console.error("Error loading cart", err);
+    }
+  };
+
+  const getQuantity = (productId) => {
+    const item = cart.find((item) => item.product.productId === productId);
+    return item ? item.quantity : 0;
+  };
+
+  const updateQuantity = async (productId, quantity) => {
+    if (!token) return alert("Please log in to modify cart");
+    setUpdatingProductId(productId);
+
+    try {
+      if (quantity > 0) {
+        await api.post(
+          "/cart/add",
+          { productId, quantity },
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+      } else {
+        await api.delete(`/cart/remove/${productId}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+      }
+      await fetchCart();
+    } catch (err) {
+      console.error("Cart update failed", err);
+      alert("Failed to update cart");
+    } finally {
+      setUpdatingProductId(null);
+    }
+  };
+
+  useEffect(() => {
+    fetchProducts(page);
+    fetchCart();
+  }, [page]);
+
+  if (loading) return <Loader />;
+
+  return (
+    <div className="p-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+        {products.map((product) => {
+          const quantity = getQuantity(product.id);
+
+          return (
+            <div
+              key={product.id}
+              className="bg-white shadow-md rounded-lg overflow-hidden flex flex-col justify-between"
+            >
+              <img
+                src={product.imageUrl}
+                alt={product.name}
+                className="h-48 w-full object-cover"
+              />
+              <div className="p-4 flex-grow">
+                <h2 className="text-lg font-semibold">{product.name}</h2>
+                <p className="text-sm text-gray-600 min-h-[48px]">
+                  {product.description}
+                </p>
+                <p className="text-green-600 font-bold mt-1">
+                  ₹{product.price.toFixed(2)}
+                </p>
+              </div>
+              <div className="p-4 pt-0">
+                {product.stockQuantity === 0 ? (
+                  <p className="text-red-600 font-semibold">Out of Stock</p>
+                ) : quantity > 0 ? (
+                  <div className="flex items-center justify-center gap-4">
+                    <button
+                      onClick={() => updateQuantity(product.id, quantity - 1)}
+                      className="px-3 py-1 text-white bg-red-500 rounded"
+                      disabled={updatingProductId === product.id}
+                    >
+                      -
+                    </button>
+                    <span className="text-md font-semibold">{quantity}</span>
+                    <button
+                      onClick={() => updateQuantity(product.id, quantity + 1)}
+                      className="px-3 py-1 text-white bg-blue-500 rounded"
+                      disabled={updatingProductId === product.id}
+                    >
+                      +
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => updateQuantity(product.id, 1)}
+                    className="w-full bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+                    disabled={updatingProductId === product.id}
+                  >
+                    Add to Cart
+                  </button>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Pagination */}
+      <div className="mt-8 flex justify-center gap-2">
+        <button
+          disabled={page === 0}
+          onClick={() => setPage((prev) => prev - 1)}
+          className="px-4 py-2 bg-gray-300 hover:bg-gray-400 rounded disabled:opacity-50"
+        >
+          Prev
+        </button>
+        <span className="px-4 py-2 font-semibold">
+          Page {page + 1} of {totalPages}
+        </span>
+        <button
+          disabled={page + 1 >= totalPages}
+          onClick={() => setPage((prev) => prev + 1)}
+          className="px-4 py-2 bg-gray-300 hover:bg-gray-400 rounded disabled:opacity-50"
+        >
+          Next
+        </button>
+      </div>
+    </div>
+  );
+}
+
+export default Home;
