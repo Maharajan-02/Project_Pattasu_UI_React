@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import api from "../axios";
+import api from "../api/axios";
 import Loader from "../components/Loader";
+import { toast } from 'react-toastify';
 
 function OtpVerification() {
   const [email, setEmail] = useState("");
@@ -21,7 +22,7 @@ function OtpVerification() {
     if (storedEmail) {
       setEmail(storedEmail);
     } else {
-      alert("User data missing. Please re-register.");
+      toast.warn("User data missing. Please re-register.");
       navigate("/register");
     }
   }, [navigate]);
@@ -39,10 +40,10 @@ function OtpVerification() {
     e.preventDefault();
     try {
         await api.post("/auth/verify-otp", { email, otp });
-        alert("OTP verified! You can now log in.");
+        toast.success("OTP verified! You can now log in.");
         navigate("/login");
     } catch (err) {
-      alert("Invalid or expired OTP. Please try again.");
+      toast.error("Invalid or expired OTP. Please try again.");
     }
   };
 
@@ -51,10 +52,10 @@ function OtpVerification() {
       await api.post("/auth/register", {
         email, // Just email is enough since backend will update OTP if pending
       });
-      alert("OTP resent to your email.");
+      toast.success("OTP resent to your email.");
       setCooldown(60); // Start 60 sec cooldown
     } catch (err) {
-      alert("Failed to resend OTP. Please re-register.");
+      toast.error("Failed to resend OTP. Please re-register.");
       console.error(err);
     }
   };

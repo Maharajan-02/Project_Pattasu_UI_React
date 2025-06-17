@@ -2,7 +2,8 @@ import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import Loader from "../components/Loader";
-import api from "../axios";
+import api from "../api/axios";
+import { toast } from 'react-toastify';
 
 function Login() {
   const [email, setEmail] = useState("");
@@ -35,7 +36,7 @@ function Login() {
       }
 
     } catch (error) {
-      alert("Login failed. Check your credentials.");
+      toast.error("Login failed. Check your credentials.");
     }
   };
 

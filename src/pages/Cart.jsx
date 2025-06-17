@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
-import api from "../axios";
+import api from "../api/axios";
 import { useNavigate } from "react-router-dom";
+import { toast } from 'react-toastify';
 
 function Cart() {
   const [cartItems, setCartItems] = useState([]);
@@ -41,7 +42,7 @@ function Cart() {
 
   const placeOrder = async () => {
     if (!address.trim()) {
-      alert("Please enter a delivery address.");
+      toast.warn("Please enter a delivery address.");
       return;
     }
 
@@ -51,10 +52,10 @@ function Cart() {
       {
         headers: { "Content-Type": "application/json" },
       });
-      alert("Order placed successfully!");
+      toast.success("Order placed successfully!");
       navigate("/orders");
     } catch (err) {
-      alert("Error placing order.");
+      toast.error("Error placing order.");
     }
   };
 

@@ -1,7 +1,9 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import api from "../axios";
+import api from "../api/axios";
 import Loader from "../components/Loader";
+import { toast } from 'react-toastify';
+
 
 function Register() {
   const [form, setForm] = useState({
@@ -30,7 +32,7 @@ function Register() {
 
     try {
         await api.post("/auth/register", form);
-        alert("OTP sent to your email.");
+        toast.success("OTP sent to your email.");
         localStorage.setItem("pendingEmail", form.email);       
         navigate("/otp", { state: { email: form.email } });
     } catch (error) {
@@ -39,7 +41,7 @@ function Register() {
         if (error.response && typeof error.response.data === "string") {
             message = error.response.data;
         }
-        alert(message);
+        toast.error(message);
     }
   };
 

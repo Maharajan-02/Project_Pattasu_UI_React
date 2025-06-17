@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
-import api from "../axios";
+import api from "../api/axios";
 import Loader from "../components/Loader";
+import { toast } from 'react-toastify';
 
 function Home({ searchQuery }) {
   const [products, setProducts] = useState([]);
@@ -47,7 +48,7 @@ function Home({ searchQuery }) {
 
   // Add or remove items from cart
   const updateQuantity = async (productId, quantity) => {
-    if (!token) return alert("Please log in to modify cart");
+    if (!token) return toast.warn("Please log in to modify cart");
     setUpdatingProductId(productId);
 
     try {
@@ -65,7 +66,7 @@ function Home({ searchQuery }) {
       await fetchCart();
     } catch (err) {
       console.error("Cart update failed", err);
-      alert("Failed to update cart");
+      toast.error("Failed to update cart");
     } finally {
       setUpdatingProductId(null);
     }
