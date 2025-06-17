@@ -1,3 +1,4 @@
+// File: src/App.jsx
 import React, { useEffect, useState } from "react";
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import Navbar from "./components/Navbar";
@@ -17,10 +18,17 @@ import "react-toastify/dist/ReactToastify.css";
 import { LoaderProvider, useLoader } from "./context/LoaderContext";
 import { loaderInstance } from "./utils/loaderSingleton";
 import Loader from "./components/Loader";
+import api from "./api/axios"; // ensure this path is correct
+import { CartProvider } from "./context/CartContext";
+import AdminProductList from "./pages/AdminProductList";
+import EditProduct from "./pages/EditProduct";
+import AuthValidator from "./components/AuthValidator";
 
 function AppContent() {
   const [searchQuery, setSearchQuery] = useState("");
-  const isAuthenticated = !!localStorage.getItem("token");
+  const [cartCount, setCartCount] = useState(0);
+  const token = localStorage.getItem("token");
+  const isAuthenticated = !!token;
   const { loading, setLoading } = useLoader();
 
   useEffect(() => {
@@ -32,14 +40,32 @@ function AppContent() {
     return () => window.removeEventListener("beforeunload", handleBeforeUnload);
   }, []);
 
+  const fetchCartCount = async () => {
+    if (!isAuthenticated) return;
+    try {
+      const res = await api.get("/cart", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const totalItems = res.data.reduce((acc, item) => acc + item.quantity, 0);
+      setCartCount(totalItems);
+    } catch (err) {
+      console.error("Error fetching cart count:", err);
+    }
+  };
+
+  useEffect(() => {
+    fetchCartCount();
+  }, [isAuthenticated]);
+
   useEffect(() => {
     loaderInstance.register(setLoading);
   }, [setLoading]);
 
   return (
     <Router>
-      {loading && <Loader />} {/* Global loader */}
-      <Navbar onSearch={setSearchQuery} />
+      {loading && <Loader />}
+      <AuthValidator />
+      <Navbar onSearch={setSearchQuery} cartCount={cartCount} />
       <Routes>
         <Route path="/" element={<Home searchQuery={searchQuery} />} />
         <Route path="/login" element={isAuthenticated ? <Navigate to="/" /> : <Login />} />
@@ -50,6 +76,8 @@ function AppContent() {
         <Route path="/admin" element={<AdminDashboard />} />
         <Route path="/admin/orders" element={<AdminOrders />} />
         <Route path="/admin/add-product" element={<AddProduct />} />
+        <Route path="/admin/manage-products" element={<AdminProductList />} />
+        <Route path="/admin/edit-product/:id" element={<EditProduct />} />
         <Route path="/admin/analytics" element={<Analytics />} />
         <Route path="/contact" element={<Contact />} />
         <Route path="*" element={<Navigate to="/" />} />
@@ -61,8 +89,10 @@ function AppContent() {
 
 function App() {
   return (
-    <LoaderProvider>
-      <AppContent />
+     <LoaderProvider>
+      <CartProvider>
+        <AppContent />
+      </CartProvider>
     </LoaderProvider>
   );
 }

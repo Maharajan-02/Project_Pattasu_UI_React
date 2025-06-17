@@ -1,76 +1,70 @@
-// File: src/pages/AddProduct.jsx
 import React, { useState, useEffect } from "react";
+import { useParams, useNavigate } from "react-router-dom";
 import api from "../api/axios";
 import { toast } from "react-toastify";
-import { useNavigate } from "react-router-dom";
 
-function AddProduct() {
+function EditProduct() {
+  const { id } = useParams();
+  const navigate = useNavigate();
   const [product, setProduct] = useState({
     name: "",
     description: "",
     price: "",
     stockQuantity: "",
   });
+  const [file, setFile] = useState(null);
 
   useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (!token) {
-        navigate("/login");
-    }
-  }, []);
-  const [imageFile, setImageFile] = useState(null);
-  const navigate = useNavigate();
+    const fetchProduct = async () => {
+      try {
+        const res = await api.get(`/products/${id}`);
+        setProduct(res.data);
+      } catch (err) {
+        console.error("Failed to fetch product", err);
+        toast.error("Error fetching product details");
+      }
+    };
+    fetchProduct();
+  }, [id]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setProduct({ ...product, [name]: value });
+    setProduct((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleImageChange = (e) => {
-    setImageFile(e.target.files[0]);
+  const handleFileChange = (e) => {
+    setFile(e.target.files[0]);
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
-    if (!imageFile) {
-      toast.error("Please select an image.");
-      return;
-    }
-
-    const formData = new FormData();
-    formData.append("name", product.name);
-    formData.append("description", product.description);
-    formData.append("price", product.price);
-    formData.append("stockQuantity", product.stockQuantity);
-    formData.append("image", imageFile); // assuming backend expects `image`
-
     try {
-      await api.post("/products", formData, {
+      const formData = new FormData();
+      formData.append("name", product.name);
+      formData.append("description", product.description);
+      formData.append("price", product.price);
+      formData.append("stockQuantity", product.stockQuantity);
+      if (file) formData.append("image", file);
+
+      await api.put(`/products/${id}`, formData, {
         headers: {
           "Content-Type": "multipart/form-data",
           Authorization: `Bearer ${localStorage.getItem("token")}`,
         },
       });
 
-      toast.success("Product added successfully!");
-        setProduct({
-        name: "",
-        description: "",
-        price: "",
-        stockQuantity: "",
-        imageUrl: "",
-        });
+      toast.success("Product updated successfully");
+      navigate("/admin/manage-products");
     } catch (err) {
-      console.error("Add product error", err);
-      toast.error("Failed to add product.");
+      console.error("Error updating product", err);
+      toast.error("Failed to update product");
     }
   };
 
   return (
     <div className="max-w-xl mx-auto mt-10 p-6 border rounded shadow bg-white">
-      <h2 className="text-2xl font-bold mb-4">Add New Product</h2>
-      <form onSubmit={handleSubmit} className="space-y-4" encType="multipart/form-data">
+      <h2 className="text-2xl font-bold mb-4">Edit Product</h2>
+      <form onSubmit={handleSubmit} className="space-y-4">
         <input
           type="text"
           name="name"
@@ -107,23 +101,31 @@ function AddProduct() {
           className="w-full border px-4 py-2 rounded"
           required
         />
+        {product.imageUrl && (
+          <div className="mb-2">
+            <img
+              src={`http://localhost:8080${product.imageUrl}`}
+              alt="Current"
+              className="w-32 h-32 object-cover border rounded"
+            />
+            <p className="text-sm text-gray-500">Current Image</p>
+          </div>
+        )}
         <input
           type="file"
-          name="image"
           accept="image/*"
-          onChange={handleImageChange}
+          onChange={handleFileChange}
           className="w-full border px-4 py-2 rounded"
-          required
         />
         <button
           type="submit"
           className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
         >
-          Add Product
+          Update Product
         </button>
       </form>
     </div>
   );
 }
 
-export default AddProduct;
+export default EditProduct;

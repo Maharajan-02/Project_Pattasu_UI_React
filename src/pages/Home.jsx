@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import api from "../api/axios";
 import Loader from "../components/Loader";
 import { toast } from 'react-toastify';
+import { useCart } from "../context/CartContext";
 
 function Home({ searchQuery }) {
   const [products, setProducts] = useState([]);
@@ -10,7 +11,7 @@ function Home({ searchQuery }) {
   const [updatingProductId, setUpdatingProductId] = useState(null);
   const [page, setPage] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
-
+  const BASE_URL = process.env.REACT_APP_BACKEND_URL || "http://localhost:8080";
   const token = localStorage.getItem("token");
 
   // Fetch products
@@ -46,6 +47,8 @@ function Home({ searchQuery }) {
     return item ? item.quantity : 0;
   };
 
+  const { fetchCartCount } = useCart();
+
   // Add or remove items from cart
   const updateQuantity = async (productId, quantity) => {
     if (!token) return toast.warn("Please log in to modify cart");
@@ -64,6 +67,7 @@ function Home({ searchQuery }) {
         });
       }
       await fetchCart();
+      fetchCartCount();
     } catch (err) {
       console.error("Cart update failed", err);
       toast.error("Failed to update cart");
@@ -106,9 +110,9 @@ function Home({ searchQuery }) {
                   className="bg-white shadow-md rounded-lg overflow-hidden flex flex-col justify-between"
                 >
                   <img
-                    src={product.imageUrl}
+                    src={`${BASE_URL}${product.imageUrl}`}
                     alt={product.name}
-                    className="h-48 w-full object-cover"
+                    className="h-48 w-full object-cover rounded"
                   />
                   <div className="p-4 flex-grow">
                     <h2 className="text-lg font-semibold">{product.name}</h2>

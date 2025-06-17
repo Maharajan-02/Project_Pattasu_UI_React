@@ -1,30 +1,55 @@
-import React, { useEffect, useState } from "react";
+// File: src/pages/Cart.jsx
+
+import { createContext, useContext, useEffect, useState } from "react";
 import api from "../api/axios";
 import { useNavigate } from "react-router-dom";
-import { toast } from 'react-toastify';
+import { toast } from "react-toastify";
+
 
 function Cart() {
   const [cartItems, setCartItems] = useState([]);
   const [address, setAddress] = useState("");
+  const [total, setTotal] = useState(0);
   const navigate = useNavigate();
+  const token = localStorage.getItem("token");
+  const CartContext = createContext();
+  const useCart = () => useContext(CartContext);
 
   const fetchCart = async () => {
+    if (!token) return;
+
     try {
-      const res = await api.get("/cart");
+      const res = await api.get("/cart", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
       setCartItems(res.data || []);
+      calculateTotal(res.data || []);
     } catch (err) {
       console.error("Error fetching cart:", err);
+      toast.error("Failed to load cart");
     }
   };
 
+  const calculateTotal = (items) => {
+    const totalValue = items.reduce(
+      (acc, item) => acc + item.quantity * item.product.price,
+      0
+    );
+    setTotal(totalValue.toFixed(2));
+  };
+
   const updateQuantity = async (productId, quantity) => {
-    if (quantity <= 0) {
-      await removeItem(productId);
-      return;
-    }
+    if (!token) return;
+    if (quantity <= 0) return removeItem(productId);
 
     try {
-      await api.post("/cart/add", { productId, quantity });
+      await api.post(
+        "/cart/add",
+        { productId, quantity },
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
       fetchCart();
     } catch (err) {
       console.error("Error updating quantity:", err);
@@ -33,7 +58,9 @@ function Cart() {
 
   const removeItem = async (productId) => {
     try {
-      await api.delete(`/cart/remove/${productId}`);
+      await api.delete(`/cart/remove/${productId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
       fetchCart();
     } catch (err) {
       console.error("Error removing item:", err);
@@ -47,20 +74,27 @@ function Cart() {
     }
 
     try {
-      await api.post("/order/place", 
+      await api.post(
+        "/order/place",
         { address },
-      {
-        headers: { "Content-Type": "application/json" },
-      });
+        {
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
       toast.success("Order placed successfully!");
       navigate("/orders");
     } catch (err) {
-      toast.error("Error placing order.");
+      console.error("Order placement error:", err);
+      toast.error("Failed to place order");
     }
   };
 
   useEffect(() => {
     fetchCart();
+    // eslint-disable-next-line
   }, []);
 
   return (
@@ -68,7 +102,7 @@ function Cart() {
       <h2 className="text-2xl font-bold mb-4">Your Cart</h2>
 
       {cartItems.length === 0 ? (
-        <p>Your cart is empty.</p>
+        <p className="text-gray-600">Your cart is empty.</p>
       ) : (
         <>
           <ul className="space-y-4">
@@ -79,23 +113,25 @@ function Cart() {
               >
                 <div>
                   <h3 className="font-semibold">{item.product.name}</h3>
-                  <p>₹{item.product.price} × {item.quantity}</p>
+                  <p className="text-sm text-gray-600">
+                    ₹{item.product.price} × {item.quantity}
+                  </p>
                 </div>
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() =>
                       updateQuantity(item.product.productId, item.quantity - 1)
                     }
-                    className="px-2 py-1 bg-gray-300 rounded hover:bg-gray-400"
+                    className="px-3 py-1 bg-gray-300 rounded hover:bg-gray-400"
                   >
                     −
                   </button>
-                  <span className="px-3">{item.quantity}</span>
+                  <span className="text-md">{item.quantity}</span>
                   <button
                     onClick={() =>
                       updateQuantity(item.product.productId, item.quantity + 1)
                     }
-                    className="px-2 py-1 bg-gray-300 rounded hover:bg-gray-400"
+                    className="px-3 py-1 bg-gray-300 rounded hover:bg-gray-400"
                   >
                     +
                   </button>
@@ -115,12 +151,15 @@ function Cart() {
             ></textarea>
           </div>
 
-          <button
-            onClick={placeOrder}
-            className="mt-4 w-full bg-green-600 text-white py-2 rounded hover:bg-green-700"
-          >
-            Place Order
-          </button>
+          <div className="mt-4 flex justify-between items-center">
+            <span className="text-lg font-bold">Total: ₹{total}</span>
+            <button
+              onClick={placeOrder}
+              className="bg-green-600 text-white px-6 py-2 rounded hover:bg-green-700"
+            >
+              Place Order
+            </button>
+          </div>
         </>
       )}
     </div>
