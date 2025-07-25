@@ -3,6 +3,9 @@ import { useNavigate } from "react-router-dom";
 import api from "../api/axios";
 import Loader from "../components/Loader";
 import { toast } from 'react-toastify';
+import "react-toastify/dist/ReactToastify.css";
+import Cookies from "js-cookie"; // <-- Add this import
+import { showToast } from "../context/showToasts"; // <-- Add this import
 
 
 function Register() {
@@ -13,15 +16,15 @@ function Register() {
     phoneNumber: "",
   });
 
-  const token = localStorage.getItem("token");
+  const token = Cookies.get("token"); // <-- Use Cookies here
+
+  const navigate = useNavigate();
 
   useEffect(() => {
     if (token) {
       navigate("/"); // or /admin based on role
     }
-  }, []);
-
-  const navigate = useNavigate();
+  }, [token, navigate]);
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -31,17 +34,18 @@ function Register() {
     e.preventDefault();
 
     try {
-        await api.post("/auth/register", form);
-        toast.success("OTP sent to your email.");
-        localStorage.setItem("pendingEmail", form.email);       
-        navigate("/otp", { state: { email: form.email } });
+      await api.post("/auth/register", form);
+      showToast("success", "OTP sent to your email.");
+      localStorage.setItem("pendingEmail", form.email);
+      navigate("/otp", { state: { email: form.email } });
     } catch (error) {
-        let message = "Registration failed.";
-
-        if (error.response && typeof error.response.data === "string") {
-            message = error.response.data;
-        }
-        toast.error(message);
+      showToast(
+        "error",
+        error?.response?.data?.message ||
+          (typeof error.response?.data === "string" && error.response.data) ||
+          error.message ||
+          "Registration failed."
+      );
     }
   };
 

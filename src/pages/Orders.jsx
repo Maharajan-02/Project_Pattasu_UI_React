@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from "react";
 import api from "../api/axios";
 import { useNavigate } from "react-router-dom";
+import BASE_URL from "../config";
+import Cookies from "js-cookie";
 
 function Orders() {
   const [orders, setOrders] = useState([]);
@@ -8,7 +10,7 @@ function Orders() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const token = localStorage.getItem("token");
+    const token = Cookies.get("token");
     if (!token) {
       alert("Please login to view orders.");
       navigate("/login");
@@ -25,7 +27,8 @@ function Orders() {
         console.error("Error loading orders:", err);
         if (err.response?.status === 401) {
           alert("Session expired. Please login again.");
-          localStorage.clear();
+          Cookies.remove("token");
+          Cookies.remove("role");
           navigate("/login");
         } else {
           alert("Failed to load orders.");
@@ -43,7 +46,7 @@ function Orders() {
   const downloadInvoice = async (orderId) => {
     try {
       const res = await api.get(`/order/${orderId}/invoice`, {
-        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+        headers: { Authorization: `Bearer ${Cookies.get("token")}` },
         responseType: "blob",
       });
       const url = window.URL.createObjectURL(new Blob([res.data]));
@@ -90,7 +93,11 @@ function Orders() {
                     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mt-4">
                       {(order.orderItemDto || []).map((item, idx) => (
                         <div key={idx} className="border rounded p-2 flex items-start gap-4">
-                          <img src={item.product?.imageUrl || ""} alt={item.product?.name} className="w-16 h-16 object-cover rounded" />
+                          <img
+                            src={`${BASE_URL}${item.product?.imageUrl}`}
+                            alt={item.product?.name}
+                            className="w-16 h-16 object-cover rounded"
+                          />
                           <div>
                             <p className="font-semibold">{item.product?.name}</p>
                             <p className="text-sm text-gray-600">₹{item.price?.toFixed(2)} × {item.quantity}</p>
@@ -99,7 +106,16 @@ function Orders() {
                       ))}
                     </div>
 
-                    <p className="text-sm mt-4"><span className="font-medium">Address:</span> {order.address}</p>
+                    {order.trackingId && (
+                      <p className="text-sm mt-2">
+                        <span className="font-medium">Tracking ID:</span> {order.trackingId}
+                      </p>
+                    )}
+
+                    <p className="text-sm mt-2">
+                      <span className="font-medium">Address:</span> {order.address}
+                    </p>
+
                     <button onClick={() => downloadInvoice(order.orderId)} className="mt-2 px-4 py-2 bg-black text-white rounded hover:bg-blue-700">
                       Download Invoice
                     </button>

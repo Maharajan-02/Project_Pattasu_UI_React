@@ -1,11 +1,12 @@
 import { useEffect } from "react";
-import { toast } from "react-toastify";
 import api from "../api/axios";
+import Cookies from "js-cookie";
+import { showToast } from "../context/showToasts"; // <-- Import your toast utility
 
 const AuthValidator = () => {
   useEffect(() => {
     const checkTokenValidity = async () => {
-      const token = localStorage.getItem("token");
+      const token = Cookies.get("token");
       if (!token) return;
 
       try {
@@ -13,10 +14,16 @@ const AuthValidator = () => {
           headers: { Authorization: `Bearer ${token}` },
         });
       } catch (err) {
-        localStorage.removeItem("token");
-        localStorage.removeItem("role");
-        toast.warning("Session expired. Please log in again.");
-        window.location.href = "/login"; // redirect before rendering anything else
+        Cookies.remove("token");
+        Cookies.remove("role");
+        showToast(
+          "warn",
+          err?.response?.data?.message ||
+            err?.response?.data ||
+            err.message ||
+            "Session expired. Please log in again."
+        );
+        window.location.href = "/login";
       }
     };
 

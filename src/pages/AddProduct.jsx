@@ -1,8 +1,9 @@
 // File: src/pages/AddProduct.jsx
 import React, { useState, useEffect } from "react";
 import api from "../api/axios";
-import { toast } from "react-toastify";
 import { useNavigate } from "react-router-dom";
+import Cookies from "js-cookie";
+import { showToast } from "../context/showToasts"; // <-- Add this import
 
 function AddProduct() {
   const [product, setProduct] = useState({
@@ -12,14 +13,16 @@ function AddProduct() {
     stockQuantity: "",
   });
 
+  const navigate = useNavigate();
+
   useEffect(() => {
-    const token = localStorage.getItem("token");
+    const token = Cookies.get("token");
     if (!token) {
-        navigate("/login");
+      navigate("/login");
     }
   }, []);
+
   const [imageFile, setImageFile] = useState(null);
-  const navigate = useNavigate();
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -34,7 +37,7 @@ function AddProduct() {
     e.preventDefault();
 
     if (!imageFile) {
-      toast.error("Please select an image.");
+      showToast("error", "Please select an image.");
       return;
     }
 
@@ -49,21 +52,27 @@ function AddProduct() {
       await api.post("/products", formData, {
         headers: {
           "Content-Type": "multipart/form-data",
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
+          Authorization: `Bearer ${Cookies.get("token")}`,
         },
       });
 
-      toast.success("Product added successfully!");
-        setProduct({
+      showToast("success", "Product added successfully!");
+      setProduct({
         name: "",
         description: "",
         price: "",
         stockQuantity: "",
         imageUrl: "",
-        });
+      });
     } catch (err) {
       console.error("Add product error", err);
-      toast.error("Failed to add product.");
+      showToast(
+        "error",
+        err?.response?.data?.message ||
+          err?.response?.data ||
+          err.message ||
+          "Failed to add product."
+      );
     }
   };
 

@@ -2,6 +2,9 @@ import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import api from "../api/axios";
 import { toast } from "react-toastify";
+import BASE_URL from "../config";
+import Cookies from "js-cookie"; // <-- Add this import
+import { showToast } from "../context/showToasts"; // <-- Add this import
 
 function EditProduct() {
   const { id } = useParams();
@@ -21,7 +24,13 @@ function EditProduct() {
         setProduct(res.data);
       } catch (err) {
         console.error("Failed to fetch product", err);
-        toast.error("Error fetching product details");
+        showToast(
+          "error",
+          err?.response?.data?.message ||
+            err?.response?.data ||
+            err.message ||
+            "Error fetching product details"
+        );
       }
     };
     fetchProduct();
@@ -49,15 +58,21 @@ function EditProduct() {
       await api.put(`/products/${id}`, formData, {
         headers: {
           "Content-Type": "multipart/form-data",
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
+          Authorization: `Bearer ${Cookies.get("token")}`,
         },
       });
 
-      toast.success("Product updated successfully");
+      showToast("success", "Product updated successfully");
       navigate("/admin/manage-products");
     } catch (err) {
       console.error("Error updating product", err);
-      toast.error("Failed to update product");
+      showToast(
+        "error",
+        err?.response?.data?.message ||
+          err?.response?.data ||
+          err.message ||
+          "Failed to update product"
+      );
     }
   };
 
@@ -104,7 +119,7 @@ function EditProduct() {
         {product.imageUrl && (
           <div className="mb-2">
             <img
-              src={`http://localhost:8080${product.imageUrl}`}
+              src={`${BASE_URL}${product.imageUrl}`}
               alt="Current"
               className="w-32 h-32 object-cover border rounded"
             />

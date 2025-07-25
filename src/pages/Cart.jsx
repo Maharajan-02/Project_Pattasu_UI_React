@@ -3,20 +3,25 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import api from "../api/axios";
 import { useNavigate } from "react-router-dom";
-import { toast } from "react-toastify";
-
+import { useCart } from "../context/CartContext";
+import "react-toastify/dist/ReactToastify.css";
+import Cookies from "js-cookie"; // <-- Add this import
+import { showToast } from "../context/showToasts"; // <-- Add this import
 
 function Cart() {
   const [cartItems, setCartItems] = useState([]);
   const [address, setAddress] = useState("");
   const [total, setTotal] = useState(0);
   const navigate = useNavigate();
-  const token = localStorage.getItem("token");
-  const CartContext = createContext();
-  const useCart = () => useContext(CartContext);
+  const token = Cookies.get("token"); // <-- Use Cookies here
+  const { fetchCartCount } = useCart();
 
   const fetchCart = async () => {
-    if (!token) return;
+    const token = Cookies.get("token");
+    if (!token) {
+      navigate("/login");
+      return;
+    }
 
     try {
       const res = await api.get("/cart", {
@@ -25,8 +30,26 @@ function Cart() {
       setCartItems(res.data || []);
       calculateTotal(res.data || []);
     } catch (err) {
-      console.error("Error fetching cart:", err);
-      toast.error("Failed to load cart");
+      if (err.response && err.response.status === 401) {
+        showToast(
+          "warn",
+          err?.response?.data?.message ||
+            err?.response?.data ||
+            err.message ||
+            "Session expired. Please log in again."
+        );
+        Cookies.remove("token");
+        Cookies.remove("role");
+        navigate("/login");
+      } else {
+        showToast(
+          "error",
+          err?.response?.data?.message ||
+            err?.response?.data ||
+            err.message ||
+            "Failed to load cart"
+        );
+      }
     }
   };
 
@@ -69,7 +92,7 @@ function Cart() {
 
   const placeOrder = async () => {
     if (!address.trim()) {
-      toast.warn("Please enter a delivery address.");
+      showToast("warn", "Please enter a delivery address.");
       return;
     }
 
@@ -84,11 +107,13 @@ function Cart() {
           },
         }
       );
-      toast.success("Order placed successfully!");
+      showToast("success", "Order placed successfully!");
+      setCartItems([]);
+      fetchCartCount();
       navigate("/orders");
     } catch (err) {
       console.error("Order placement error:", err);
-      toast.error("Failed to place order");
+      showToast("error", "Failed to place order");
     }
   };
 

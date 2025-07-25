@@ -4,18 +4,21 @@ import { useNavigate } from "react-router-dom";
 import Loader from "../components/Loader";
 import api from "../api/axios";
 import { toast } from 'react-toastify';
+import "react-toastify/dist/ReactToastify.css";
+import Cookies from "js-cookie";
+import { showToast } from "../context/showToasts"; // <-- Add this import
 
 function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const navigate = useNavigate();
-  const token = localStorage.getItem("token");
+  const token = Cookies.get("token"); // Use Cookies instead of localStorage
 
   useEffect(() => {
     if (token) {
       navigate("/"); // or /admin based on role
     }
-  }, []);
+  }, [token, navigate]);
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -27,8 +30,10 @@ function Login() {
       console.log("Login response:", res.data);
       const { token, role } = res.data;
 
-      localStorage.setItem("token", token);
-      localStorage.setItem("role", role);
+      // Store in cookies instead of localStorage
+      Cookies.set("token", token, { expires: 7 }); // 7 days expiry
+      Cookies.set("role", role, { expires: 7 });
+
       if (role === "admin") {
         navigate("/admin");
       } else {
@@ -36,7 +41,13 @@ function Login() {
       }
 
     } catch (error) {
-      toast.error("Login failed. Check your credentials.");
+      showToast(
+        "error",
+        error?.response?.data?.message ||
+          error?.response?.data ||
+          error.message ||
+          "Login failed. Check your credentials."
+      );
     }
   };
 

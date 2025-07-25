@@ -3,26 +3,29 @@ import { useNavigate } from "react-router-dom";
 import api from "../api/axios";
 import Loader from "../components/Loader";
 import { toast } from 'react-toastify';
+import "react-toastify/dist/ReactToastify.css";
+import Cookies from "js-cookie"; // <-- Add this import
+import { showToast } from "../context/showToasts"; // <-- Add this import
 
 function OtpVerification() {
   const [email, setEmail] = useState("");
   const [otp, setOtp] = useState("");
   const [cooldown, setCooldown] = useState(0);
   const navigate = useNavigate();
-  const token = localStorage.getItem("token");
+  const token = Cookies.get("token"); // <-- Use Cookies here
 
   useEffect(() => {
     if (token) {
       navigate("/"); // or /admin based on role
     }
-  }, []);
+  }, [token, navigate]);
 
   useEffect(() => {
     const storedEmail = localStorage.getItem("pendingEmail");
     if (storedEmail) {
       setEmail(storedEmail);
     } else {
-      toast.warn("User data missing. Please re-register.");
+      showToast("warn", "User data missing. Please re-register.");
       navigate("/register");
     }
   }, [navigate]);
@@ -39,23 +42,33 @@ function OtpVerification() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-        await api.post("/auth/verify-otp", { email, otp });
-        toast.success("OTP verified! You can now log in.");
-        navigate("/login");
+      await api.post("/auth/verify-otp", { email, otp });
+      showToast("success", "OTP verified! You can now log in.");
+      navigate("/login");
     } catch (err) {
-      toast.error("Invalid or expired OTP. Please try again.");
+      showToast(
+        "error",
+        err?.response?.data?.message ||
+          err?.response?.data ||
+          err.message ||
+          "Invalid or expired OTP. Please try again."
+      );
     }
   };
 
   const resendOtp = async () => {
     try {
-      await api.post("/auth/register", {
-        email, // Just email is enough since backend will update OTP if pending
-      });
-      toast.success("OTP resent to your email.");
-      setCooldown(60); // Start 60 sec cooldown
+      await api.post("/auth/register", { email });
+      showToast("success", "OTP resent to your email.");
+      setCooldown(60);
     } catch (err) {
-      toast.error("Failed to resend OTP. Please re-register.");
+      showToast(
+        "error",
+        err?.response?.data?.message ||
+          err?.response?.data ||
+          err.message ||
+          "Failed to resend OTP. Please re-register."
+      );
       console.error(err);
     }
   };

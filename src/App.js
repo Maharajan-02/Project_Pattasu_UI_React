@@ -9,49 +9,55 @@ import OtpVerification from "./pages/OtpVerification";
 import Cart from "./pages/Cart";
 import Orders from "./pages/Orders";
 import AdminDashboard from "./pages/AdminDashboard";
-import AdminOrders from "./pages/AdminOrders";
 import AddProduct from "./pages/AddProduct";
-import Analytics from "./pages/Analytics";
 import Contact from "./pages/Contact";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { LoaderProvider, useLoader } from "./context/LoaderContext";
 import { loaderInstance } from "./utils/loaderSingleton";
 import Loader from "./components/Loader";
-import api from "./api/axios"; // ensure this path is correct
 import { CartProvider } from "./context/CartContext";
 import AdminProductList from "./pages/AdminProductList";
 import EditProduct from "./pages/EditProduct";
 import AuthValidator from "./components/AuthValidator";
+import AdminOrderList from "./pages/AdminOrderList";
+import { useCart } from "./context/CartContext";
+import Cookies from "js-cookie";
+import api from "./api/axios";
+import { showToast } from "./context/showToasts"; // <-- Use your toast utility
 
 function AppContent() {
   const [searchQuery, setSearchQuery] = useState("");
   const [cartCount, setCartCount] = useState(0);
-  const token = localStorage.getItem("token");
+  const token = Cookies.get("token"); // <-- Use cookies
   const isAuthenticated = !!token;
   const { loading, setLoading } = useLoader();
+  const { fetchCartCount } = useCart();
 
   useEffect(() => {
-    const handleBeforeUnload = () => {
-      localStorage.removeItem("token");
-      localStorage.removeItem("role");
-    };
-    window.addEventListener("beforeunload", handleBeforeUnload);
-    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
-  }, []);
+    const checkTokenValidity = async () => {
+      const token = Cookies.get("token"); // <-- Use cookies
+      if (!token) return;
 
-  const fetchCartCount = async () => {
-    if (!isAuthenticated) return;
-    try {
-      const res = await api.get("/cart", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const totalItems = res.data.reduce((acc, item) => acc + item.quantity, 0);
-      setCartCount(totalItems);
-    } catch (err) {
-      console.error("Error fetching cart count:", err);
-    }
-  };
+      try {
+        await api.get("/auth/validate", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+      } catch (err) {
+        Cookies.remove("token");
+        Cookies.remove("role");
+        showToast("warn", 
+          err?.response?.data?.message ||
+          err?.response?.data ||
+          err.message ||
+          "Session expired. Please log in again."
+        );
+        window.location.href = "/login";
+      }
+    };
+
+    checkTokenValidity();
+  }, []);
 
   useEffect(() => {
     fetchCartCount();
@@ -74,12 +80,11 @@ function AppContent() {
         <Route path="/cart" element={<Cart />} />
         <Route path="/orders" element={<Orders />} />
         <Route path="/admin" element={<AdminDashboard />} />
-        <Route path="/admin/orders" element={<AdminOrders />} />
         <Route path="/admin/add-product" element={<AddProduct />} />
         <Route path="/admin/manage-products" element={<AdminProductList />} />
         <Route path="/admin/edit-product/:id" element={<EditProduct />} />
-        <Route path="/admin/analytics" element={<Analytics />} />
-        <Route path="/contact" element={<Contact />} />
+        <Route path="/admin/orders" element={<AdminOrderList />} />
+        <Route path="/admin/contact" element={<Contact />} />
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>
       <ToastContainer position="top-center" autoClose={1500} />
@@ -89,7 +94,7 @@ function AppContent() {
 
 function App() {
   return (
-     <LoaderProvider>
+    <LoaderProvider>
       <CartProvider>
         <AppContent />
       </CartProvider>

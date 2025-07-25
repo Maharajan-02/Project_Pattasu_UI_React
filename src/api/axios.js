@@ -1,10 +1,10 @@
 import axios from "axios";
-import { toast } from "react-toastify";
+import { showToast } from "../context/showToasts"; // <-- Use your toast utility
 import { loaderInstance } from "../utils/loaderSingleton";
+import BASE_URL from "../config";
 
 const api = axios.create({
-  baseURL: "http://localhost:8080/api", // your API
-  withCredentials: true,
+  baseURL: `${BASE_URL}/api`,
 });
 
 api.interceptors.request.use(
@@ -25,7 +25,13 @@ api.interceptors.response.use(
   },
   (error) => {
     loaderInstance.set(false);
-    toast.error("Something went wrong");
+    showToast(
+      "error",
+      error?.response?.data?.message ||
+        error?.response?.data ||
+        error.message ||
+        "Something went wrong"
+    );
     return Promise.reject(error);
   }
 );

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { FaUserCircle, FaShoppingCart } from "react-icons/fa";
 import { useCart } from "../context/CartContext";
+import Cookies from "js-cookie"; // <-- Add this line
 
 function Navbar({ onSearch }) {
   const navigate = useNavigate();
@@ -9,14 +10,13 @@ function Navbar({ onSearch }) {
   const dropdownRef = useRef(null);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [search, setSearch] = useState("");
-  const role = localStorage.getItem("role");
-
-
-  const token = localStorage.getItem("token");
+  const role = Cookies.get("role"); // <-- Use Cookies here
+  const token = Cookies.get("token"); // <-- Use Cookies here
   const { cartCount, fetchCartCount } = useCart();
 
   const logout = () => {
-    localStorage.clear();
+    Cookies.remove("token");
+    Cookies.remove("role");
     setDropdownOpen(false);
     navigate("/login");
   };
@@ -73,7 +73,7 @@ function Navbar({ onSearch }) {
         )}
 
         {/* RIGHT: Cart icon + User Dropdown */}
-        <div className="flex items-center gap-4 relative" ref={dropdownRef}>
+        <div className="flex items-center gap-4 relative">
           {token && (
             <button onClick={() => navigate("/cart")} title="View Cart" className="relative">
               <FaShoppingCart size={22} />
@@ -84,28 +84,30 @@ function Navbar({ onSearch }) {
               )}
             </button>
           )}
-          <button onClick={() => setDropdownOpen(!dropdownOpen)}>
-            <FaUserCircle size={28} />
-          </button>
-          {dropdownOpen && (
-            <div className="absolute top-full right-2 mt-1 w-40 bg-white border rounded shadow-lg z-50">
-              {!token ? (
-                <>
-                  <Link to="/login" onClick={() => setDropdownOpen(false)} className="block px-4 py-2 hover:bg-gray-100">Login</Link>
-                  <Link to="/register" onClick={() => setDropdownOpen(false)} className="block px-4 py-2 hover:bg-gray-100">Sign Up</Link>
-                </>
-              ) : (
-                <>
-                  {role === "admin" ? (
-                  <Link to="/admin" onClick={() => setDropdownOpen(false)} className="block px-4 py-2 hover:bg-gray-100">Admin Dashboard</Link>
-                  ) : (
-                    <Link to="/orders" onClick={() => setDropdownOpen(false)} className="block px-4 py-2 hover:bg-gray-100">Order Details</Link>
-                  )}
-                  <button onClick={logout} className="w-full text-left px-4 py-2 hover:bg-gray-100">Logout</button>
-                </>
-              )}
-            </div>
-          )}
+          <div ref={dropdownRef}>
+            <button onClick={() => setDropdownOpen(!dropdownOpen)}>
+              <FaUserCircle size={28} />
+            </button>
+            {dropdownOpen && (
+              <div className="absolute top-full right-2 mt-1 w-40 bg-white border rounded shadow-lg z-50">
+                {!token ? (
+                  <>
+                    <Link to="/login" onClick={() => setDropdownOpen(false)} className="block px-4 py-2 hover:bg-gray-100">Login</Link>
+                    <Link to="/register" onClick={() => setDropdownOpen(false)} className="block px-4 py-2 hover:bg-gray-100">Sign Up</Link>
+                  </>
+                ) : (
+                  <>
+                    {role === "admin" ? (
+                      <Link to="/admin" onClick={() => setDropdownOpen(false)} className="block px-4 py-2 hover:bg-gray-100">Admin Dashboard</Link>
+                    ) : (
+                      <Link to="/orders" onClick={() => setDropdownOpen(false)} className="block px-4 py-2 hover:bg-gray-100">Order Details</Link>
+                    )}
+                    <button onClick={logout} className="w-full text-left px-4 py-2 hover:bg-gray-100">Logout</button>
+                  </>
+                )}
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </header>
