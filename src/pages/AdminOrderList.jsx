@@ -151,7 +151,7 @@ function AdminOrders() {
                       <option value="CANCELLED">Cancelled</option>
                       <option value="RETURNED">Returned</option>
                       <option value="REFUNDED">Refunded</option>
-                      <option ption value="FAILED">Failed</option>
+                      <option value="FAILED">Failed</option>
                     </select>
                   </div>
 
