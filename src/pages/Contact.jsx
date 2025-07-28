@@ -8,7 +8,7 @@ function Contact() {
   const [contact, setContact] = useState({
     shopName: "",
     address: "",
-    phoneNumner: "",
+    phoneNumber: "",
     mailId: "",
   });
   const [loading, setLoading] = useState(true);
@@ -94,8 +94,8 @@ function Contact() {
           <label className="block font-medium mb-1">Phone Number</label>
           <input
             type="text"
-            name="phoneNumner"
-            value={contact.phoneNumner}
+            name="phoneNumber"
+            value={contact.phoneNumber}
             onChange={handleChange}
             className="w-full border rounded px-3 py-2"
             required

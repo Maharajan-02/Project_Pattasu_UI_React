@@ -25,13 +25,23 @@ api.interceptors.response.use(
   },
   (error) => {
     loaderInstance.set(false);
-    showToast(
-      "error",
-      error?.response?.data?.message ||
-        error?.response?.data ||
-        error.message ||
-        "Something went wrong"
-    );
+    
+    // Only redirect on authentication errors, not all errors
+    if (error.response?.status === 401) {
+      Cookies.remove("token");
+      Cookies.remove("role");
+      window.location.href = "/login";
+    } else {
+      // Show toast for other errors
+      showToast(
+        "error",
+        error?.response?.data?.message ||
+          error?.response?.data ||
+          error.message ||
+          "Something went wrong"
+      );
+    }
+    
     return Promise.reject(error);
   }
 );

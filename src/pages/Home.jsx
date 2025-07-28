@@ -28,7 +28,7 @@ function Home({ searchQuery }) {
     setLoading(true);
     try {
       const res = await api.get(
-        `/products?page=${pageNumber}&size=${pageSize}&search=${search}`
+        `/products/active?page=${pageNumber}&size=${pageSize}&search=${search}`
       );
       setProducts(res.data.content || []);
       setTotalPages(res.data.totalPages || 1);
@@ -119,7 +119,6 @@ function Home({ searchQuery }) {
     fetchCart();
   }, []);
 
-  // ✅ Debounced and safe pageSize input
   useEffect(() => {
     const timeout = setTimeout(() => {
       const parsed = Number(pageSizeInput);
@@ -129,7 +128,7 @@ function Home({ searchQuery }) {
       } else {
         setPageSize(parsed);
       }
-    }, 600); // allow user to type freely
+    }, 600);
 
     return () => clearTimeout(timeout);
   }, [pageSizeInput]);
@@ -153,7 +152,6 @@ function Home({ searchQuery }) {
             </div>
           )}
 
-          {/* Product count and page size */}
           <div className="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
             <div className="text-sm text-gray-600">
               Showing {products.length} of {totalProducts} products
@@ -171,7 +169,6 @@ function Home({ searchQuery }) {
             </div>
           </div>
 
-          {/* Product grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
             {products.map((product) => {
               const quantity = getQuantity(product.id);
@@ -181,7 +178,8 @@ function Home({ searchQuery }) {
                   className="bg-white shadow-md rounded-lg overflow-hidden flex flex-col justify-between"
                 >
                   <img
-                    src={`${BASE_URL}${product.imageUrl}`}
+                    // src={`${BASE_URL}${product.imageUrl}`}
+                    src={`${product.imageUrl}`}
                     alt={product.name}
                     className="h-48 w-full object-cover rounded"
                   />
@@ -230,7 +228,6 @@ function Home({ searchQuery }) {
             })}
           </div>
 
-          {/* Pagination */}
           <div className="mt-8 flex justify-center gap-2">
             <button
               disabled={page === 0}
@@ -253,7 +250,6 @@ function Home({ searchQuery }) {
         </>
       )}
 
-      {/* Contact Division */}
       <div className="mt-12 max-w-xl mx-auto bg-white shadow rounded p-6">
         <h3 className="text-xl font-bold mb-4 text-center">Contact Us</h3>
         {contact ? (
@@ -265,8 +261,7 @@ function Home({ searchQuery }) {
               <span className="font-semibold">Address:</span> {contact.address}
             </div>
             <div>
-              <span className="font-semibold">Phone Number:</span>{" "}
-              {contact.phoneNumner}
+              <span className="font-semibold">Phone Number:</span> {contact.phoneNumber}
             </div>
             <div>
               <span className="font-semibold">Mail ID:</span> {contact.mailId}

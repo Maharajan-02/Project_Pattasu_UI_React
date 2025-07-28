@@ -1,23 +1,20 @@
-// File: src/pages/Cart.jsx
-
-import { createContext, useContext, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import api from "../api/axios";
 import { useNavigate } from "react-router-dom";
 import { useCart } from "../context/CartContext";
 import "react-toastify/dist/ReactToastify.css";
-import Cookies from "js-cookie"; // <-- Add this import
-import { showToast } from "../context/showToasts"; // <-- Add this import
+import Cookies from "js-cookie";
+import { showToast } from "../context/showToasts";
 
 function Cart() {
   const [cartItems, setCartItems] = useState([]);
   const [address, setAddress] = useState("");
   const [total, setTotal] = useState(0);
   const navigate = useNavigate();
-  const token = Cookies.get("token"); // <-- Use Cookies here
+  const token = Cookies.get("token");
   const { fetchCartCount } = useCart();
 
   const fetchCart = async () => {
-    const token = Cookies.get("token");
     if (!token) {
       navigate("/login");
       return;
@@ -54,10 +51,11 @@ function Cart() {
   };
 
   const calculateTotal = (items) => {
-    const totalValue = items.reduce(
-      (acc, item) => acc + item.quantity * item.product.price,
-      0
-    );
+    const totalValue = items.reduce((acc, item) => {
+      const product = item.product;
+      const isAvailable = product.active && product.stockQuantity > 0; // <-- Changed from isActive to active
+      return isAvailable ? acc + item.quantity * product.price : acc;
+    }, 0);
     setTotal(totalValue.toFixed(2));
   };
 
@@ -96,6 +94,17 @@ function Cart() {
       return;
     }
 
+    const unavailableItems = cartItems.filter(
+      (item) =>
+        !item.product.active || item.product.stockQuantity <= 0 // <-- Changed from isActive to active
+    );
+
+    if (unavailableItems.length > 0) {
+      const names = unavailableItems.map((item) => item.product.name).join(", ");
+      showToast("warn", `Some products are unavailable: ${names}`);
+      return;
+    }
+
     try {
       await api.post(
         "/order/place",
@@ -131,38 +140,63 @@ function Cart() {
       ) : (
         <>
           <ul className="space-y-4">
-            {cartItems.map((item) => (
-              <li
-                key={item.id}
-                className="flex justify-between items-center border p-4 rounded"
-              >
-                <div>
-                  <h3 className="font-semibold">{item.product.name}</h3>
-                  <p className="text-sm text-gray-600">
-                    ₹{item.product.price} × {item.quantity}
-                  </p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() =>
-                      updateQuantity(item.product.productId, item.quantity - 1)
-                    }
-                    className="px-3 py-1 bg-gray-300 rounded hover:bg-gray-400"
-                  >
-                    −
-                  </button>
-                  <span className="text-md">{item.quantity}</span>
-                  <button
-                    onClick={() =>
-                      updateQuantity(item.product.productId, item.quantity + 1)
-                    }
-                    className="px-3 py-1 bg-gray-300 rounded hover:bg-gray-400"
-                  >
-                    +
-                  </button>
-                </div>
-              </li>
-            ))}
+            {cartItems.map((item) => {
+              const product = item.product;
+              const notAvailable = !product.active || product.stockQuantity <= 0; // <-- Changed from isActive to active
+
+              return (
+                <li
+                  key={item.id}
+                  className={`flex justify-between items-center border p-4 rounded ${
+                    notAvailable ? "opacity-50" : ""
+                  }`}
+                >
+                  <div>
+                    <h3 className="font-semibold">{product.name}</h3>
+                    <p className="text-sm text-gray-600">
+                      ₹{product.price} × {item.quantity}
+                    </p>
+                    {notAvailable && (
+                      <p className="text-red-500 font-medium text-sm">
+                        Product Not Available
+                      </p>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {notAvailable ? (
+                      // Show remove button for unavailable items
+                      <button
+                        onClick={() => removeItem(product.productId)}
+                        className="px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600"
+                      >
+                        Remove
+                      </button>
+                    ) : (
+                      // Show quantity controls for available items
+                      <>
+                        <button
+                          onClick={() =>
+                            updateQuantity(product.productId, item.quantity - 1)
+                          }
+                          className="px-3 py-1 bg-gray-300 rounded hover:bg-gray-400"
+                        >
+                          −
+                        </button>
+                        <span className="text-md">{item.quantity}</span>
+                        <button
+                          onClick={() =>
+                            updateQuantity(product.productId, item.quantity + 1)
+                          }
+                          className="px-3 py-1 bg-gray-300 rounded hover:bg-gray-400"
+                        >
+                          +
+                        </button>
+                      </>
+                    )}
+                  </div>
+                </li>
+              );
+            })}
           </ul>
 
           <div className="mt-6">

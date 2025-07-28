@@ -70,7 +70,6 @@ function AppContent() {
   return (
     <Router>
       {loading && <Loader />}
-      <AuthValidator />
       <Navbar onSearch={setSearchQuery} cartCount={cartCount} />
       <Routes>
         <Route path="/" element={<Home searchQuery={searchQuery} />} />

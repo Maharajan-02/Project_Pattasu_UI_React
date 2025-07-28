@@ -94,7 +94,8 @@ function Orders() {
                       {(order.orderItemDto || []).map((item, idx) => (
                         <div key={idx} className="border rounded p-2 flex items-start gap-4">
                           <img
-                            src={`${BASE_URL}${item.product?.imageUrl}`}
+                            // src={`${BASE_URL}${item.product?.imageUrl}`}
+                            src={`${item.product?.imageUrl}`}
                             alt={item.product?.name}
                             className="w-16 h-16 object-cover rounded"
                           />

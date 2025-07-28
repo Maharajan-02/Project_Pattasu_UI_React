@@ -20,7 +20,7 @@ function AdminDashboard() {
       action: () => navigate("/admin/add-product"),
     },
     {
-      title: "Edit / Delete Products",
+      title: "Edit Products",
       icon: <FaEdit className="text-blue-600" size={24} />,
       action: () => navigate("/admin/manage-products"),
     },

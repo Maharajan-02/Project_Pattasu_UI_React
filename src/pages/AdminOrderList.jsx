@@ -11,6 +11,7 @@ function AdminOrders() {
   const [expandedOrderId, setExpandedOrderId] = useState(null);
   const [statusUpdate, setStatusUpdate] = useState({});
   const [trackingUpdate, setTrackingUpdate] = useState({});
+  const [logisticsUpdate, setLogisticsUpdate] = useState({}); // <-- Add this to your state declarations at the top
 
   const fetchOrders = async () => {
     try {
@@ -31,17 +32,24 @@ function AdminOrders() {
     }
   };
 
+  // Update the handleUpdate function to include logisticsPartner
   const handleUpdate = async (orderId) => {
     try {
-      const status = statusUpdate[orderId];
-      const trackingId = trackingUpdate[orderId];
+      // Find the current order to get existing values
+      const currentOrder = orders.find((order) => order.id === orderId);
+
+      const status = statusUpdate[orderId] || currentOrder?.orderStatus;
+      const trackingId = trackingUpdate[orderId] || currentOrder?.trackingId;
+      const logisticsPartner =
+        logisticsUpdate[orderId] || currentOrder?.logisticsPartner;
 
       await api.put(
         "/order/update",
         {
           id: orderId,
           orderStatus: status,
-          trackingId,
+          trackingId: trackingId,
+          logisticsPartner: logisticsPartner,
         },
         {
           headers: {
@@ -61,6 +69,39 @@ function AdminOrders() {
           "Failed to update order"
       );
     }
+  };
+
+  // Add this function to determine available next statuses
+  const getAvailableStatuses = (currentStatus) => {
+    const statusHierarchy = [
+      "PLACED",
+      "CONFIRMED",
+      "PROCESSING",
+      "SHIPPED",
+      "DELIVERED",
+    ];
+
+    const terminalStatuses = [
+      "CANCELLED",
+      "RETURNED",
+      "REFUNDED",
+      "FAILED",
+    ];
+
+    // If current status is terminal, no changes allowed
+    if (terminalStatuses.includes(currentStatus)) {
+      return [currentStatus];
+    }
+
+    // If current status is in normal flow, allow current and forward statuses + terminal ones
+    const currentIndex = statusHierarchy.indexOf(currentStatus);
+    if (currentIndex !== -1) {
+      const availableStatuses = statusHierarchy.slice(currentIndex); // Current and forward
+      return [...availableStatuses, ...terminalStatuses]; // Add terminal statuses
+    }
+
+    // Fallback - return all if status not found
+    return [...statusHierarchy, ...terminalStatuses];
   };
 
   useEffect(() => {
@@ -100,20 +141,22 @@ function AdminOrders() {
               </button>
             </div>
 
-           {expandedOrderId === order.id && (
+            {expandedOrderId === order.id && (
               <div className="mt-4 space-y-3">
                 <div>
                   <p className="font-semibold">User Info:</p>
                   <p className="text-gray-700 whitespace-pre-line">
-                    <strong>Name :</strong> {order.userName}<br />
-                    <strong>Email :</strong> {order.userEmail}<br />
+                    <strong>Name :</strong> {order.userName}
+                    <br />
+                    <strong>Email :</strong> {order.userEmail}
+                    <br />
                     <strong>Phone :</strong> {order.userPhone}
                   </p>
                 </div>
                 <div>
                   <p className="font-semibold">Delivery Address:</p>
                   <p className="text-gray-700 whitespace-pre-line">
-                    {order.deliveryAddress}
+                    {order.address} {/* <-- Changed from order.deliveryAddress to order.address */}
                   </p>
                 </div>
 
@@ -128,7 +171,7 @@ function AdminOrders() {
                   </ul>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
                   <div>
                     <label className="block font-medium mb-1">
                       Order Status
@@ -143,18 +186,38 @@ function AdminOrders() {
                         }))
                       }
                     >
-                      <option value="PLACED">Placed</option>
-                      <option value="CONFIRMED">Confirmed</option>
-                      <option value="PROCESSING">Processing</option>
-                      <option value="SHIPPED">Shipped</option>
-                      <option value="DELIVERED">Delivered</option>
-                      <option value="CANCELLED">Cancelled</option>
-                      <option value="RETURNED">Returned</option>
-                      <option value="REFUNDED">Refunded</option>
-                      <option value="FAILED">Failed</option>
+                      {getAvailableStatuses(order.orderStatus).map((status) => (
+                        <option key={status} value={status}>
+                          {status.charAt(0) + status.slice(1).toLowerCase()}
+                        </option>
+                      ))}
                     </select>
                   </div>
 
+                  {/* Logistics Partner - moved to second position */}
+                  <div>
+                    <label className="block font-medium mb-1">
+                      Logistics Partner
+                    </label>
+                    <input
+                      type="text"
+                      className="w-full border p-2 rounded"
+                      placeholder="e.g., FedEx, DHL, Blue Dart"
+                      value={
+                        logisticsUpdate[order.id] ||
+                        order.logisticsPartner ||
+                        ""
+                      }
+                      onChange={(e) =>
+                        setLogisticsUpdate((prev) => ({
+                          ...prev,
+                          [order.id]: e.target.value,
+                        }))
+                      }
+                    />
+                  </div>
+
+                  {/* Tracking ID - moved to third position */}
                   <div>
                     <label className="block font-medium mb-1">
                       Tracking ID
