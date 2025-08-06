@@ -1,5 +1,5 @@
 // File: src/pages/AddProduct.jsx
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import api from "../api/axios";
 import { useNavigate } from "react-router-dom";
 import Cookies from "js-cookie";
@@ -11,11 +11,12 @@ function AddProduct() {
     description: "",
     price: "",
     stockQuantity: "",
-    discount: "", // <-- Add discount field
+    discount: "",
     active: true,
   });
 
   const navigate = useNavigate();
+  const fileInputRef = useRef(null); // Add ref for file input
 
   useEffect(() => {
     const token = Cookies.get("token");
@@ -84,7 +85,7 @@ function AddProduct() {
     formData.append("description", product.description);
     formData.append("price", product.price);
     formData.append("stockQuantity", product.stockQuantity);
-    formData.append("discount", product.discount); // <-- Add discount to form data
+    formData.append("discount", product.discount);
     formData.append("active", product.active);
     formData.append("image", imageFile);
 
@@ -97,16 +98,24 @@ function AddProduct() {
       });
 
       showToast("success", "Product added successfully!");
+      
+      // Reset all form data
       setProduct({
         name: "",
         description: "",
         price: "",
         stockQuantity: "",
-        discount: "", // <-- Reset discount field
+        discount: "",
         active: true,
       });
       setImageFile(null);
       setImagePreview(null);
+      
+      // Clear the file input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+
     } catch (err) {
       console.error("Add product error", err);
       showToast(
@@ -231,13 +240,14 @@ function AddProduct() {
             <img
               src={imagePreview}
               alt="Preview"
-              className="w-32 h-32 object-cover border rounded"
+              className="w-32 h-32 object-contain border rounded bg-gray-50"
             />
             <p className="text-sm text-gray-500">Image Preview</p>
           </div>
         )}
 
         <input
+          ref={fileInputRef} // Add ref to file input
           type="file"
           name="image"
           accept="image/jpeg,image/jpg,image/png,image/webp"
