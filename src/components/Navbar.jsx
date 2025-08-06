@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { FaUserCircle, FaShoppingCart } from "react-icons/fa";
 import { useCart } from "../context/CartContext";
-import Cookies from "js-cookie"; // <-- Add this line
+import Cookies from "js-cookie";
 
 function Navbar({ onSearch }) {
   const navigate = useNavigate();
@@ -10,8 +10,8 @@ function Navbar({ onSearch }) {
   const dropdownRef = useRef(null);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [search, setSearch] = useState("");
-  const role = Cookies.get("role"); // <-- Use Cookies here
-  const token = Cookies.get("token"); // <-- Use Cookies here
+  const role = Cookies.get("role");
+  const token = Cookies.get("token");
   const { cartCount, fetchCartCount } = useCart();
 
   const logout = () => {
@@ -40,7 +40,6 @@ function Navbar({ onSearch }) {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // ✅ Only fetch cart if user is logged in
   useEffect(() => {
     if (token) {
       fetchCartCount();
@@ -50,13 +49,20 @@ function Navbar({ onSearch }) {
   return (
     <header className="bg-white shadow sticky top-0 z-50">
       <div className="flex items-center justify-between px-4 py-2">
-        {/* LEFT: Logo + Name + Home */}
+        {/* LEFT: Logo + Name + Home + Admin Dashboard (if admin) */}
         <div className="flex items-center gap-x-4">
           <Link to="/" className="flex items-center gap-2">
             <img src="/resources/logo.png" alt="Surya Pyro Park" className="h-8 w-auto" />
             <span className="text-xl font-bold text-[#C0392B] mb-2">Surya Pyro Park</span>
           </Link>
           <Link to="/" className="text-black font-medium hover:underline mb-0.5">Home</Link>
+          
+          {/* Add Admin Dashboard link if user is admin */}
+          {role === "admin" && (
+            <Link to="/admin" className="text-black font-medium hover:underline mb-0.5">
+              Admin Dashboard
+            </Link>
+          )}
         </div>
 
         {/* CENTER: Search bar (only on home) */}

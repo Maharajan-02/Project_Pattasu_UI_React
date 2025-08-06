@@ -91,33 +91,79 @@ function Orders() {
                 {isExpanded && (
                   <>
                     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mt-4">
-                      {(order.orderItemDto || []).map((item, idx) => (
-                        <div key={idx} className="border rounded p-2 flex items-start gap-4">
-                          <img
-                            // src={`${BASE_URL}${item.product?.imageUrl}`}
-                            src={`${item.product?.imageUrl}`}
-                            alt={item.product?.name}
-                            className="w-16 h-16 object-cover rounded"
-                          />
-                          <div>
-                            <p className="font-semibold">{item.product?.name}</p>
-                            <p className="text-sm text-gray-600">₹{item.price?.toFixed(2)} × {item.quantity}</p>
+                      {(order.orderItemDto || []).map((item, idx) => {
+                        const product = item.product || {};
+                        const hasDiscount = product.discount && product.discount > 0;
+                        const itemPrice = item.price || product.finalPrice || product.price || 0;
+                        const originalPrice = product.price || 0;
+                        const quantity = item.quantity || 0;
+
+                        return (
+                          <div key={idx} className="border rounded p-2 flex items-start gap-4">
+                            <img
+                              src={product.imageUrl || ''}
+                              alt={product.name || 'Product'}
+                              className="w-16 h-16 object-contain rounded bg-gray-50"
+                            />
+                            <div>
+                              <p className="font-semibold">{product.name || 'Unknown Product'}</p>
+                              
+                              <div className="text-sm text-gray-600">
+                                {hasDiscount ? (
+                                  <div className="flex flex-col gap-1">
+                                    <div className="flex items-center gap-2">
+                                      <span className="bg-red-500 text-white text-xs px-1 py-0.5 rounded">
+                                        {product.discount.toFixed(0)}% OFF
+                                      </span>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                      <span className="text-gray-500 line-through text-xs">
+                                        ₹{originalPrice.toFixed(2)}
+                                      </span>
+                                      <span className="text-green-600 font-medium">
+                                        ₹{(product.finalPrice || itemPrice).toFixed(2)}
+                                      </span>
+                                    </div>
+                                    <span>× {quantity}</span>
+                                  </div>
+                                ) : (
+                                  <span>₹{itemPrice.toFixed(2)} × {quantity}</span>
+                                )}
+                              </div>
+                              
+                              <div className="text-sm font-medium text-gray-800 mt-1">
+                                Total: ₹{(itemPrice * quantity).toFixed(2)}
+                              </div>
+                            </div>
                           </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
 
-                    {order.trackingId && (
-                      <p className="text-sm mt-2">
-                        <span className="font-medium">Tracking ID:</span> {order.trackingId}
+                    {/* Order details section */}
+                    <div className="mt-4 space-y-2">
+                      {order.trackingId && (
+                        <p className="text-sm">
+                          <span className="font-medium">Tracking ID:</span> {order.trackingId}
+                        </p>
+                      )}
+
+                      {/* Add logistics partner */}
+                      {order.logisticsPartner && (
+                        <p className="text-sm">
+                          <span className="font-medium">Logistics Partner:</span> {order.logisticsPartner}
+                        </p>
+                      )}
+
+                      <p className="text-sm">
+                        <span className="font-medium">Address:</span> {order.address}
                       </p>
-                    )}
+                    </div>
 
-                    <p className="text-sm mt-2">
-                      <span className="font-medium">Address:</span> {order.address}
-                    </p>
-
-                    <button onClick={() => downloadInvoice(order.orderId)} className="mt-2 px-4 py-2 bg-black text-white rounded hover:bg-blue-700">
+                    <button 
+                      onClick={() => downloadInvoice(order.orderId)} 
+                      className="mt-4 px-4 py-2 bg-black text-white rounded hover:bg-gray-800 transition-colors"
+                    >
                       Download Invoice
                     </button>
                   </>

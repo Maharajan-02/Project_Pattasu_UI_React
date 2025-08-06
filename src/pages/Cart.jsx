@@ -24,8 +24,9 @@ function Cart() {
       const res = await api.get("/cart", {
         headers: { Authorization: `Bearer ${token}` },
       });
-      setCartItems(res.data || []);
-      calculateTotal(res.data || []);
+      const data = res.data || [];
+      setCartItems(data);
+      calculateTotal(data);
     } catch (err) {
       if (err.response && err.response.status === 401) {
         showToast(
@@ -52,9 +53,10 @@ function Cart() {
 
   const calculateTotal = (items) => {
     const totalValue = items.reduce((acc, item) => {
-      const product = item.product;
-      const isAvailable = product.active && product.stockQuantity > 0; // <-- Changed from isActive to active
-      return isAvailable ? acc + item.quantity * product.price : acc;
+      const price = item?.finalPrice ?? item?.product?.price ?? 0;
+      const quantity = item?.quantity ?? 0;
+      const isAvailable = item?.product?.active && item?.product?.stockQuantity > 0;
+      return isAvailable ? acc + price * quantity : acc;
     }, 0);
     setTotal(totalValue.toFixed(2));
   };
@@ -95,8 +97,7 @@ function Cart() {
     }
 
     const unavailableItems = cartItems.filter(
-      (item) =>
-        !item.product.active || item.product.stockQuantity <= 0 // <-- Changed from isActive to active
+      (item) => !item.product.active || item.product.stockQuantity <= 0
     );
 
     if (unavailableItems.length > 0) {
@@ -142,7 +143,11 @@ function Cart() {
           <ul className="space-y-4">
             {cartItems.map((item) => {
               const product = item.product;
-              const notAvailable = !product.active || product.stockQuantity <= 0; // <-- Changed from isActive to active
+              const notAvailable = !product.active || product.stockQuantity <= 0;
+              const price = item?.finalPrice ?? product?.price ?? 0;
+              const originalPrice = product?.price ?? 0;
+              const quantity = item?.quantity ?? 0;
+              const discount = item?.discount ?? 0;
 
               return (
                 <li
@@ -153,9 +158,32 @@ function Cart() {
                 >
                   <div>
                     <h3 className="font-semibold">{product.name}</h3>
-                    <p className="text-sm text-gray-600">
-                      ₹{product.price} × {item.quantity}
-                    </p>
+
+                    <div className="text-sm text-gray-600">
+                      {discount > 0 ? (
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="bg-red-500 text-white text-xs px-1 py-0.5 rounded">
+                            {discount.toFixed(0)}% OFF
+                          </span>
+                          <span className="text-gray-500 line-through text-xs">
+                            ₹{originalPrice.toFixed(2)}
+                          </span>
+                          <span className="text-green-600 font-medium">
+                            ₹{price.toFixed(2)}
+                          </span>
+                          <span>× {quantity}</span>
+                        </div>
+                      ) : (
+                        <span>
+                          ₹{originalPrice.toFixed(2)} × {quantity}
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="text-sm font-medium text-gray-800 mt-1">
+                      Item Total: ₹{(price * quantity).toFixed(2)}
+                    </div>
+
                     {notAvailable && (
                       <p className="text-red-500 font-medium text-sm">
                         Product Not Available
@@ -164,7 +192,6 @@ function Cart() {
                   </div>
                   <div className="flex items-center gap-2">
                     {notAvailable ? (
-                      // Show remove button for unavailable items
                       <button
                         onClick={() => removeItem(product.productId)}
                         className="px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600"
@@ -172,20 +199,19 @@ function Cart() {
                         Remove
                       </button>
                     ) : (
-                      // Show quantity controls for available items
                       <>
                         <button
                           onClick={() =>
-                            updateQuantity(product.productId, item.quantity - 1)
+                            updateQuantity(product.productId, quantity - 1)
                           }
                           className="px-3 py-1 bg-gray-300 rounded hover:bg-gray-400"
                         >
                           −
                         </button>
-                        <span className="text-md">{item.quantity}</span>
+                        <span className="text-md">{quantity}</span>
                         <button
                           onClick={() =>
-                            updateQuantity(product.productId, item.quantity + 1)
+                            updateQuantity(product.productId, quantity + 1)
                           }
                           className="px-3 py-1 bg-gray-300 rounded hover:bg-gray-400"
                         >

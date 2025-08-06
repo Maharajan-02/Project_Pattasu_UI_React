@@ -17,11 +17,12 @@ function EditProduct() {
     description: "",
     price: "",
     stockQuantity: "",
+    discount: "", // <-- Add discount field
     active: true,
     imageUrl: "",
   });
   const [file, setFile] = useState(null);
-  const [imagePreview, setImagePreview] = useState(null); // <-- Add image preview state
+  const [imagePreview, setImagePreview] = useState(null);
 
   useEffect(() => {
     const fetchProduct = async () => {
@@ -29,7 +30,8 @@ function EditProduct() {
         const res = await api.get(`/products/${id}`);
         setProduct({ 
           ...res.data, 
-          active: res.data.active ?? true
+          active: res.data.active ?? true,
+          discount: res.data.discount || "" // <-- Set discount from response
         });
       } catch (err) {
         showToast("error", err?.response?.data?.message || "Failed to load product");
@@ -54,6 +56,21 @@ function EditProduct() {
 
   const handleFileChange = (e) => {
     const selectedFile = e.target.files[0];
+    
+    // Validate file size (5MB limit)
+    const maxSize = 5 * 1024 * 1024; // 5MB in bytes
+    if (selectedFile && selectedFile.size > maxSize) {
+      showToast("error", "Image size must be less than 5MB");
+      return;
+    }
+    
+    // Validate file type
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+    if (selectedFile && !allowedTypes.includes(selectedFile.type)) {
+      showToast("error", "Only JPEG, PNG, and WebP images are allowed");
+      return;
+    }
+    
     setFile(selectedFile);
     
     // Create preview URL for the selected image
@@ -71,12 +88,21 @@ function EditProduct() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    // Validate discount percentage
+    const discountValue = parseFloat(product.discount);
+    if (product.discount && (discountValue < 0 || discountValue > 100)) {
+      showToast("error", "Discount must be between 0 and 100%");
+      return;
+    }
+
     try {
       const formData = new FormData();
       formData.append("name", product.name);
       formData.append("description", product.description);
       formData.append("price", product.price);
       formData.append("stockQuantity", product.stockQuantity);
+      formData.append("discount", product.discount || "0"); // <-- Add discount to form data
       formData.append("active", product.active);
       
       if (file) {
@@ -98,6 +124,11 @@ function EditProduct() {
       showToast("error", err?.response?.data?.message || "Failed to update product");
     }
   };
+
+  // Calculate discounted price for preview
+  const discountedPrice = product.price && product.discount 
+    ? (parseFloat(product.price) * (1 - parseFloat(product.discount) / 100)).toFixed(2)
+    : null;
 
   return (
     <div className="max-w-xl mx-auto mt-10 p-6 border rounded shadow bg-white">
@@ -121,15 +152,48 @@ function EditProduct() {
           rows={3}
           required
         />
-        <input
-          type="number"
-          name="price"
-          value={product.price}
-          onChange={handleChange}
-          placeholder="Price"
-          className="w-full border px-4 py-2 rounded"
-          required
-        />
+        
+        {/* Price and Discount in a grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <input
+            type="number"
+            name="price"
+            value={product.price}
+            onChange={handleChange}
+            placeholder="Price (₹)"
+            className="w-full border px-4 py-2 rounded"
+            min="0"
+            step="0.01"
+            required
+          />
+          <input
+            type="number"
+            name="discount"
+            value={product.discount}
+            onChange={handleChange}
+            placeholder="Discount (%)"
+            className="w-full border px-4 py-2 rounded"
+            min="0"
+            max="100"
+            step="0.01"
+          />
+        </div>
+
+        {/* Show price calculation preview */}
+        {product.price && product.discount && discountedPrice && (
+          <div className="bg-gray-50 p-3 rounded border">
+            <p className="text-sm">
+              <span className="font-medium">Original Price:</span> ₹{parseFloat(product.price).toFixed(2)}
+            </p>
+            <p className="text-sm">
+              <span className="font-medium">Discount:</span> {product.discount}%
+            </p>
+            <p className="text-sm font-bold text-green-600">
+              <span className="font-medium">Final Price:</span> ₹{discountedPrice}
+            </p>
+          </div>
+        )}
+
         <input
           type="number"
           name="stockQuantity"
@@ -137,6 +201,7 @@ function EditProduct() {
           onChange={handleChange}
           placeholder="Stock Quantity"
           className="w-full border px-4 py-2 rounded"
+          min="0"
           required
         />
 
@@ -162,7 +227,7 @@ function EditProduct() {
             <img
               src={`${product.imageUrl}`}
               alt="Current"
-              className="w-32 h-32 object-cover border rounded"
+              className="w-32 h-32 object-contain border rounded bg-gray-50"
             />
             <p className="text-sm text-gray-500">Current Image</p>
           </div>
@@ -174,7 +239,7 @@ function EditProduct() {
             <img
               src={imagePreview}
               alt="Preview"
-              className="w-32 h-32 object-cover border rounded"
+              className="w-32 h-32 object-contain border rounded bg-gray-50"
             />
             <p className="text-sm text-gray-500">New Image Preview</p>
           </div>
@@ -182,7 +247,7 @@ function EditProduct() {
 
         <input
           type="file"
-          accept="image/*"
+          accept="image/jpeg,image/jpg,image/png,image/webp"
           onChange={handleFileChange}
           className="w-full border px-4 py-2 rounded"
         />

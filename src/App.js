@@ -24,19 +24,46 @@ import AdminOrderList from "./pages/AdminOrderList";
 import { useCart } from "./context/CartContext";
 import Cookies from "js-cookie";
 import api from "./api/axios";
-import { showToast } from "./context/showToasts"; // <-- Use your toast utility
+import { showToast } from "./context/showToasts";
+
+// Admin Route Protection Component
+function AdminRoute({ children }) {
+  const token = Cookies.get("token");
+  const role = Cookies.get("role");
+  
+  if (!token) {
+    return <Navigate to="/login" />;
+  }
+  
+  if (role !== "admin") {
+    return <Navigate to="/" />;
+  }
+  
+  return children;
+}
+
+// Protected Route Component for authenticated users
+function ProtectedRoute({ children }) {
+  const token = Cookies.get("token");
+  
+  if (!token) {
+    return <Navigate to="/login" />;
+  }
+  
+  return children;
+}
 
 function AppContent() {
   const [searchQuery, setSearchQuery] = useState("");
   const [cartCount, setCartCount] = useState(0);
-  const token = Cookies.get("token"); // <-- Use cookies
+  const token = Cookies.get("token");
   const isAuthenticated = !!token;
   const { loading, setLoading } = useLoader();
   const { fetchCartCount } = useCart();
 
   useEffect(() => {
     const checkTokenValidity = async () => {
-      const token = Cookies.get("token"); // <-- Use cookies
+      const token = Cookies.get("token");
       if (!token) return;
 
       try {
@@ -72,18 +99,57 @@ function AppContent() {
       {loading && <Loader />}
       <Navbar onSearch={setSearchQuery} cartCount={cartCount} />
       <Routes>
+        {/* Public Routes */}
         <Route path="/" element={<Home searchQuery={searchQuery} />} />
         <Route path="/login" element={isAuthenticated ? <Navigate to="/" /> : <Login />} />
         <Route path="/register" element={isAuthenticated ? <Navigate to="/" /> : <Register />} />
         <Route path="/otp" element={isAuthenticated ? <Navigate to="/" /> : <OtpVerification />} />
-        <Route path="/cart" element={<Cart />} />
-        <Route path="/orders" element={<Orders />} />
-        <Route path="/admin" element={<AdminDashboard />} />
-        <Route path="/admin/add-product" element={<AddProduct />} />
-        <Route path="/admin/manage-products" element={<AdminProductList />} />
-        <Route path="/admin/edit-product/:id" element={<EditProduct />} />
-        <Route path="/admin/orders" element={<AdminOrderList />} />
-        <Route path="/admin/contact" element={<Contact />} />
+        
+        {/* Protected User Routes */}
+        <Route path="/cart" element={
+          <ProtectedRoute>
+            <Cart />
+          </ProtectedRoute>
+        } />
+        <Route path="/orders" element={
+          <ProtectedRoute>
+            <Orders />
+          </ProtectedRoute>
+        } />
+        
+        {/* Admin Routes - Protected */}
+        <Route path="/admin" element={
+          <AdminRoute>
+            <AdminDashboard />
+          </AdminRoute>
+        } />
+        <Route path="/admin/add-product" element={
+          <AdminRoute>
+            <AddProduct />
+          </AdminRoute>
+        } />
+        <Route path="/admin/manage-products" element={
+          <AdminRoute>
+            <AdminProductList />
+          </AdminRoute>
+        } />
+        <Route path="/admin/edit-product/:id" element={
+          <AdminRoute>
+            <EditProduct />
+          </AdminRoute>
+        } />
+        <Route path="/admin/orders" element={
+          <AdminRoute>
+            <AdminOrderList />
+          </AdminRoute>
+        } />
+        <Route path="/admin/contact" element={
+          <AdminRoute>
+            <Contact />
+          </AdminRoute>
+        } />
+        
+        {/* Catch all route */}
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>
       <ToastContainer position="top-center" autoClose={1500} />

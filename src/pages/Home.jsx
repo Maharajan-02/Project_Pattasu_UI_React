@@ -181,16 +181,39 @@ function Home({ searchQuery }) {
                     // src={`${BASE_URL}${product.imageUrl}`}
                     src={`${product.imageUrl}`}
                     alt={product.name}
-                    className="h-48 w-full object-cover rounded"
+                    className="h-48 w-full object-contain rounded bg-gray-50" // Changed from object-cover to object-contain
                   />
                   <div className="p-4 flex-grow">
                     <h2 className="text-lg font-semibold">{product.name}</h2>
                     <p className="text-sm text-gray-600 min-h-[48px]">
                       {product.description}
                     </p>
-                    <p className="text-green-600 font-bold mt-1">
-                      ₹{product.price.toFixed(2)}
-                    </p>
+                    
+                    {/* Price section with discount logic */}
+                    <div className="mt-1">
+                      {product.discount > 0 ? (
+                        <div className="flex items-center gap-2 flex-wrap">
+                          {/* Original price with strikethrough */}
+                          <span className="text-gray-500 line-through text-sm">
+                            ₹{product.price.toFixed(2)}
+                          </span>
+                          
+                          {/* Discounted price */}
+                          <span className="text-green-600 font-bold">
+                            ₹{product.finalPrice.toFixed(2)}
+                          </span>
+                          
+                          {/* Discount percentage badge */}
+                          <span className="bg-red-500 text-white text-xs px-2 py-1 rounded">
+                            {product.discount.toFixed(0)}% OFF
+                          </span>
+                        </div>
+                      ) : (
+                        <p className="text-green-600 font-bold">
+                          ₹{product.price.toFixed(2)}
+                        </p>
+                      )}
+                    </div>
                   </div>
                   <div className="p-4 pt-0">
                     {product.stockQuantity === 0 ? (
