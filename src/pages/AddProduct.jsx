@@ -1,5 +1,5 @@
 // File: src/pages/AddProduct.jsx
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import api from "../api/axios";
 import { useNavigate } from "react-router-dom";
 import Cookies from "js-cookie";
@@ -15,77 +15,160 @@ function AddProduct() {
     active: true,
   });
 
+  const [imageFile, setImageFile] = useState(null);
+  const [imagePreview, setImagePreview] = useState(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const navigate = useNavigate();
-  const fileInputRef = useRef(null); // Add ref for file input
+  const fileInputRef = useRef(null);
+
+  // Memoize token check to prevent unnecessary re-renders
+  const token = useMemo(() => Cookies.get("token"), []);
 
   useEffect(() => {
-    const token = Cookies.get("token");
     if (!token) {
       navigate("/login");
     }
+  }, [token, navigate]);
+
+  // Memoized validation constants
+  const validation = useMemo(() => ({
+    maxFileSize: 5 * 1024 * 1024, // 5MB
+    allowedTypes: ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'],
+    minDiscount: 0,
+    maxDiscount: 100
+  }), []);
+
+  // Optimized form change handler with useCallback
+  const handleChange = useCallback((e) => {
+    const { name, value } = e.target;
+    setProduct(prev => ({
+      ...prev,
+      [name]: value
+    }));
   }, []);
 
-  const [imageFile, setImageFile] = useState(null);
-  const [imagePreview, setImagePreview] = useState(null);
-
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setProduct({ ...product, [name]: value });
-  };
-
-  const handleImageChange = (e) => {
+  // Optimized image change handler
+  const handleImageChange = useCallback((e) => {
     const file = e.target.files[0];
     
-    // Validate file size (5MB limit)
-    const maxSize = 5 * 1024 * 1024; // 5MB in bytes
-    if (file && file.size > maxSize) {
+    if (!file) {
+      setImageFile(null);
+      setImagePreview(null);
+      return;
+    }
+
+    // Validate file size
+    if (file.size > validation.maxFileSize) {
       showToast("error", "Image size must be less than 5MB");
+      e.target.value = ""; // Clear the input
+      // Clear the preview states when validation fails
+      setImageFile(null);
+      if (imagePreview) {
+        URL.revokeObjectURL(imagePreview);
+      }
+      setImagePreview(null);
       return;
     }
     
     // Validate file type
-    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
-    if (file && !allowedTypes.includes(file.type)) {
+    if (!validation.allowedTypes.includes(file.type)) {
       showToast("error", "Only JPEG, PNG, and WebP images are allowed");
+      e.target.value = ""; // Clear the input
+      // Clear the preview states when validation fails
+      setImageFile(null);
+      if (imagePreview) {
+        URL.revokeObjectURL(imagePreview);
+      }
+      setImagePreview(null);
       return;
     }
     
     setImageFile(file);
 
-    // Create preview URL for the selected image
-    if (file) {
-      const previewUrl = URL.createObjectURL(file);
-      setImagePreview(previewUrl);
-    } else {
+    // Clean up previous preview URL
+    if (imagePreview) {
+      URL.revokeObjectURL(imagePreview);
+    }
+
+    // Create new preview URL
+    const previewUrl = URL.createObjectURL(file);
+    setImagePreview(previewUrl);
+  }, [imagePreview, validation]);
+
+  // Optimized toggle handler
+  const handleToggle = useCallback(() => {
+    setProduct(prev => ({ ...prev, active: !prev.active }));
+  }, []);
+
+  // Memoized calculated price to avoid recalculation on every render
+  const discountedPrice = useMemo(() => {
+    if (!product.price || !product.discount) return null;
+    
+    const price = parseFloat(product.price);
+    const discount = parseFloat(product.discount);
+    
+    if (isNaN(price) || isNaN(discount)) return null;
+    
+    return (price * (1 - discount / 100)).toFixed(2);
+  }, [product.price, product.discount]);
+
+  // Form validation
+  const isFormValid = useMemo(() => {
+    const { name, description, price, stockQuantity } = product;
+    const discount = parseFloat(product.discount) || 0;
+    
+    return (
+      name.trim() &&
+      description.trim() &&
+      price &&
+      stockQuantity &&
+      imageFile &&
+      discount >= validation.minDiscount &&
+      discount <= validation.maxDiscount
+    );
+  }, [product, imageFile, validation]);
+
+  // Reset form function
+  const resetForm = useCallback(() => {
+    setProduct({
+      name: "",
+      description: "",
+      price: "",
+      stockQuantity: "",
+      discount: "",
+      active: true,
+    });
+    setImageFile(null);
+    
+    // Clean up preview URL
+    if (imagePreview) {
+      URL.revokeObjectURL(imagePreview);
       setImagePreview(null);
     }
-  };
+    
+    // Clear file input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  }, [imagePreview]);
 
-  const handleToggle = () => {
-    setProduct((prev) => ({ ...prev, active: !prev.active }));
-  };
-
-  const handleSubmit = async (e) => {
+  // Optimized submit handler
+  const handleSubmit = useCallback(async (e) => {
     e.preventDefault();
 
-    if (!imageFile) {
-      showToast("error", "Please select an image.");
+    if (!isFormValid) {
+      showToast("error", "Please fill all required fields correctly");
       return;
     }
 
-    // Validate discount percentage
-    const discountValue = parseFloat(product.discount);
-    if (discountValue < 0 || discountValue > 100) {
-      showToast("error", "Discount must be between 0 and 100%");
-      return;
-    }
+    setIsSubmitting(true);
 
     const formData = new FormData();
-    formData.append("name", product.name);
-    formData.append("description", product.description);
+    formData.append("name", product.name.trim());
+    formData.append("description", product.description.trim());
     formData.append("price", product.price);
     formData.append("stockQuantity", product.stockQuantity);
-    formData.append("discount", product.discount);
+    formData.append("discount", product.discount || "0");
     formData.append("active", product.active);
     formData.append("image", imageFile);
 
@@ -93,28 +176,12 @@ function AddProduct() {
       await api.post("/products", formData, {
         headers: {
           "Content-Type": "multipart/form-data",
-          Authorization: `Bearer ${Cookies.get("token")}`,
+          Authorization: `Bearer ${token}`,
         },
       });
 
       showToast("success", "Product added successfully!");
-      
-      // Reset all form data
-      setProduct({
-        name: "",
-        description: "",
-        price: "",
-        stockQuantity: "",
-        discount: "",
-        active: true,
-      });
-      setImageFile(null);
-      setImagePreview(null);
-      
-      // Clear the file input
-      if (fileInputRef.current) {
-        fileInputRef.current.value = "";
-      }
+      resetForm();
 
     } catch (err) {
       console.error("Add product error", err);
@@ -125,10 +192,12 @@ function AddProduct() {
           err.message ||
           "Failed to add product."
       );
+    } finally {
+      setIsSubmitting(false);
     }
-  };
+  }, [isFormValid, product, imageFile, token, resetForm]);
 
-  // Clean up the preview URL when component unmounts or image changes
+  // Cleanup preview URL on unmount
   useEffect(() => {
     return () => {
       if (imagePreview) {
@@ -137,46 +206,47 @@ function AddProduct() {
     };
   }, [imagePreview]);
 
-  // Calculate discounted price for preview
-  const discountedPrice = product.price && product.discount 
-    ? (parseFloat(product.price) * (1 - parseFloat(product.discount) / 100)).toFixed(2)
-    : null;
-
   return (
     <div className="max-w-xl mx-auto mt-10 p-6 border rounded shadow bg-white">
       <h2 className="text-2xl font-bold mb-4">Add New Product</h2>
       <form onSubmit={handleSubmit} className="space-y-4" encType="multipart/form-data">
+        {/* Product Name */}
         <input
           type="text"
           name="name"
-          placeholder="Product Name"
+          placeholder="Product Name *"
           value={product.name}
           onChange={handleChange}
-          className="w-full border px-4 py-2 rounded"
+          className="w-full border px-4 py-2 rounded focus:outline-none focus:border-blue-500"
           required
+          disabled={isSubmitting}
         />
+
+        {/* Description */}
         <textarea
           name="description"
-          placeholder="Description"
+          placeholder="Description *"
           value={product.description}
           onChange={handleChange}
-          className="w-full border px-4 py-2 rounded"
+          className="w-full border px-4 py-2 rounded focus:outline-none focus:border-blue-500 resize-none"
           rows={3}
           required
+          disabled={isSubmitting}
         />
         
-        {/* Price and Discount in a grid */}
+        {/* Price and Discount Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <input
             type="number"
             name="price"
-            placeholder="Price (₹)"
+            placeholder="Price (₹) *"
             value={product.price}
             onChange={handleChange}
-            className="w-full border px-4 py-2 rounded"
+            className="w-full border px-4 py-2 rounded focus:outline-none focus:border-blue-500"
             min="0"
             step="0.01"
             required
+            disabled={isSubmitting}
           />
           <input
             type="number"
@@ -184,82 +254,111 @@ function AddProduct() {
             placeholder="Discount (%)"
             value={product.discount}
             onChange={handleChange}
-            className="w-full border px-4 py-2 rounded"
+            className="w-full border px-4 py-2 rounded focus:outline-none focus:border-blue-500"
             min="0"
             max="100"
             step="0.01"
+            disabled={isSubmitting}
           />
         </div>
 
-        {/* Show price calculation preview */}
-        {product.price && product.discount && discountedPrice && (
-          <div className="bg-gray-50 p-3 rounded border">
-            <p className="text-sm">
-              <span className="font-medium">Original Price:</span> ₹{parseFloat(product.price).toFixed(2)}
-            </p>
-            <p className="text-sm">
-              <span className="font-medium">Discount:</span> {product.discount}%
-            </p>
-            <p className="text-sm font-bold text-green-600">
-              <span className="font-medium">Final Price:</span> ₹{discountedPrice}
-            </p>
+        {/* Price Preview - Only show when both values exist */}
+        {discountedPrice && (
+          <div className="bg-blue-50 p-3 rounded border border-blue-200">
+            <div className="grid grid-cols-3 gap-2 text-sm">
+              <div>
+                <span className="font-medium text-gray-700">Original:</span>
+                <div className="text-gray-600">₹{parseFloat(product.price).toFixed(2)}</div>
+              </div>
+              <div>
+                <span className="font-medium text-gray-700">Discount:</span>
+                <div className="text-red-600">{product.discount}%</div>
+              </div>
+              <div>
+                <span className="font-medium text-gray-700">Final:</span>
+                <div className="text-green-600 font-bold">₹{discountedPrice}</div>
+              </div>
+            </div>
           </div>
         )}
 
+        {/* Stock Quantity */}
         <input
           type="number"
           name="stockQuantity"
-          placeholder="Stock Quantity"
+          placeholder="Stock Quantity *"
           value={product.stockQuantity}
           onChange={handleChange}
-          className="w-full border px-4 py-2 rounded"
+          className="w-full border px-4 py-2 rounded focus:outline-none focus:border-blue-500"
           min="0"
           required
+          disabled={isSubmitting}
         />
 
-        {/* Add Active Status Toggle */}
-        <div className="flex items-center gap-4">
-          <span className="font-medium">Active Status:</span>
+        {/* Active Status Toggle */}
+        <div className="flex items-center justify-between p-3 bg-gray-50 rounded border">
+          <span className="font-medium">Product Status:</span>
           <label className="relative inline-flex items-center cursor-pointer">
             <input
               type="checkbox"
               className="sr-only peer"
               checked={product.active}
               onChange={handleToggle}
+              disabled={isSubmitting}
             />
             <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-500 rounded-full peer peer-checked:bg-green-500 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:after:translate-x-full peer-checked:after:border-white"></div>
-            <span className="ml-3 text-sm text-gray-700">
+            <span className="ml-3 text-sm font-medium text-gray-700">
               {product.active ? "Active" : "Inactive"}
             </span>
           </label>
         </div>
 
-        {/* Image Preview Section */}
+        {/* Image Preview */}
         {imagePreview && (
-          <div className="mb-2">
+          <div className="flex items-center gap-4 p-3 bg-gray-50 rounded border">
             <img
               src={imagePreview}
               alt="Preview"
-              className="w-32 h-32 object-contain border rounded bg-gray-50"
+              className="w-20 h-20 object-contain border rounded bg-white"
             />
-            <p className="text-sm text-gray-500">Image Preview</p>
+            <div>
+              <p className="text-sm font-medium text-gray-700">Image Preview</p>
+              <p className="text-xs text-gray-500">{imageFile?.name}</p>
+            </div>
           </div>
         )}
 
-        <input
-          ref={fileInputRef} // Add ref to file input
-          type="file"
-          name="image"
-          accept="image/jpeg,image/jpg,image/png,image/webp"
-          onChange={handleImageChange}
-          className="w-full border px-4 py-2 rounded"
-          required
-        />
+        {/* File Input */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Product Image *
+          </label>
+          <input
+            ref={fileInputRef}
+            type="file"
+            name="image"
+            accept="image/jpeg,image/jpg,image/png,image/webp"
+            onChange={handleImageChange}
+            className="w-full border px-4 py-2 rounded focus:outline-none focus:border-blue-500"
+            required
+            disabled={isSubmitting}
+          />
+          <p className="text-xs text-gray-500 mt-1">
+            Max size: 5MB. Formats: JPEG, PNG, WebP
+          </p>
+        </div>
+
+        {/* Submit Button */}
         <button
           type="submit"
-          className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+          disabled={!isFormValid || isSubmitting}
+          className={`w-full py-2 rounded font-medium transition-colors ${
+            isFormValid && !isSubmitting
+              ? "bg-blue-600 text-white hover:bg-blue-700"
+              : "bg-gray-300 text-gray-500 cursor-not-allowed"
+          }`}
         >
-          Add Product
+          {isSubmitting ? "Adding Product..." : "Add Product"}
         </button>
       </form>
     </div>
