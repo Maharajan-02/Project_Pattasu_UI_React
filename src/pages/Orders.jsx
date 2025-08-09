@@ -43,19 +43,42 @@ function Orders() {
     setExpandedOrderId((prev) => (prev === orderId ? null : orderId));
   };
 
-  const downloadInvoice = async (orderId) => {
+  const downloadInvoice = async (orderId, orderDate) => {
     try {
       const res = await api.get(`/order/${orderId}/invoice`, {
         headers: { Authorization: `Bearer ${Cookies.get("token")}` },
         responseType: "blob",
       });
-      const url = window.URL.createObjectURL(new Blob([res.data]));
-      const link = document.createElement("a");
-      link.href = url;
-      link.setAttribute("download", `invoice-${orderId}.pdf`);
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
+
+      // Format orderDate as yyyyMMdd-HHmmss
+      let formattedDate = "";
+      if (orderDate) {
+        const d = new Date(orderDate);
+        const pad = (n) => n.toString().padStart(2, "0");
+        formattedDate =
+          d.getFullYear().toString() +
+          pad(d.getMonth() + 1) +
+          pad(d.getDate()) +
+          "-" +
+          pad(d.getHours()) +
+          pad(d.getMinutes()) +
+          pad(d.getSeconds());
+      }
+
+      const filename = `invoice-${orderId}${
+        formattedDate ? "-" + formattedDate : ""
+      }.pdf`;
+
+      const blob = new Blob([res.data], { type: "application/pdf" });
+      const url = window.URL.createObjectURL(blob);
+
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
     } catch (err) {
       console.error("Failed to download invoice", err);
       alert("Invoice download failed");
@@ -76,13 +99,23 @@ function Orders() {
               <div key={order.orderId} className="border rounded-lg shadow-sm p-4">
                 <div className="flex justify-between items-center">
                   <div>
-                    <p><span className="font-semibold">Order ID:</span> {order.orderId}</p>
-                    <p><span className="font-semibold">Date:</span> {new Date(order.orderDate).toLocaleDateString("en-IN")}</p>
-                    <p><span className="font-semibold">Items:</span> {order.numberOfItems}</p>
+                    <p>
+                      <span className="font-semibold">Order ID:</span> {order.orderId}
+                    </p>
+                    <p>
+                      <span className="font-semibold">Date:</span>{" "}
+                      {new Date(order.orderDate).toLocaleDateString("en-IN")}
+                    </p>
+                    <p>
+                      <span className="font-semibold">Items:</span> {order.numberOfItems}
+                    </p>
                   </div>
                   <div className="text-right">
                     <p className="text-blue-600 font-semibold">{order.status}</p>
-                    <button onClick={() => toggleOrder(order.orderId)} className="text-sm text-gray-600 underline">
+                    <button
+                      onClick={() => toggleOrder(order.orderId)}
+                      className="text-sm text-gray-600 underline"
+                    >
                       {isExpanded ? "Hide Details" : "View Details"}
                     </button>
                   </div>
@@ -101,13 +134,13 @@ function Orders() {
                         return (
                           <div key={idx} className="border rounded p-2 flex items-start gap-4">
                             <img
-                              src={product.imageUrl || ''}
-                              alt={product.name || 'Product'}
+                              src={product.imageUrl || ""}
+                              alt={product.name || "Product"}
                               className="w-16 h-16 object-contain rounded bg-gray-50"
                             />
                             <div>
-                              <p className="font-semibold">{product.name || 'Unknown Product'}</p>
-                              
+                              <p className="font-semibold">{product.name || "Unknown Product"}</p>
+
                               <div className="text-sm text-gray-600">
                                 {hasDiscount ? (
                                   <div className="flex flex-col gap-1">
@@ -130,7 +163,7 @@ function Orders() {
                                   <span>₹{itemPrice.toFixed(2)} × {quantity}</span>
                                 )}
                               </div>
-                              
+
                               <div className="text-sm font-medium text-gray-800 mt-1">
                                 Total: ₹{(itemPrice * quantity).toFixed(2)}
                               </div>
@@ -160,8 +193,8 @@ function Orders() {
                       </p>
                     </div>
 
-                    <button 
-                      onClick={() => downloadInvoice(order.orderId)} 
+                    <button
+                      onClick={() => downloadInvoice(order.orderId, order.orderDate)}
                       className="mt-4 px-4 py-2 bg-black text-white rounded hover:bg-gray-800 transition-colors"
                     >
                       Download Invoice

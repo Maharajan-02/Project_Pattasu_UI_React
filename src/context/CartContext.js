@@ -18,11 +18,12 @@ export function CartProvider({ children }) {
   const [cartCount, setCartCount] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
 
-  // Memoize token to prevent unnecessary re-renders
-  const token = useMemo(() => Cookies.get("token"), []);
+  // Get token directly from Cookies (not memoized) for reactivity
+  const getToken = () => Cookies.get("token");
 
   // Optimized fetch cart count - count unique products only
   const fetchCartCount = useCallback(async () => {
+    const token = getToken();
     if (!token) {
       setCartCount(0);
       return;
@@ -35,14 +36,14 @@ export function CartProvider({ children }) {
           Authorization: `Bearer ${token}`,
         },
       });
-      
+
       // Count unique products (length of cart array)
       const uniqueProductCount = Array.isArray(res.data) ? res.data.length : 0;
-      
+
       setCartCount(uniqueProductCount);
     } catch (err) {
       console.error("Error fetching cart count:", err);
-      
+
       // If unauthorized, clear cart count
       if (err.response?.status === 401) {
         setCartCount(0);
@@ -52,7 +53,7 @@ export function CartProvider({ children }) {
     } finally {
       setIsLoading(false);
     }
-  }, [token]);
+  }, []);
 
   // Clear cart count when user logs out
   const clearCartCount = useCallback(() => {
@@ -69,14 +70,41 @@ export function CartProvider({ children }) {
     setCartCount(Math.max(0, count));
   }, []);
 
-  // Initial fetch on mount and when token changes
+  // Listen for token changes (login/logout) using storage event and polling fallback
   useEffect(() => {
-    if (token) {
-      fetchCartCount();
-    } else {
-      setCartCount(0);
-    }
-  }, [token, fetchCartCount]);
+    let lastToken = getToken();
+
+    const checkTokenChange = () => {
+      const currentToken = getToken();
+      if (currentToken !== lastToken) {
+        lastToken = currentToken;
+        if (currentToken) {
+          fetchCartCount();
+        } else {
+          setCartCount(0);
+        }
+      }
+    };
+
+    // Listen for storage events (cross-tab)
+    const onStorage = (e) => {
+      if (e.key === "token") {
+        checkTokenChange();
+      }
+    };
+    window.addEventListener("storage", onStorage);
+
+    // Polling fallback for same-tab changes
+    const interval = setInterval(checkTokenChange, 1000);
+
+    // Initial fetch
+    checkTokenChange();
+
+    return () => {
+      window.removeEventListener("storage", onStorage);
+      clearInterval(interval);
+    };
+  }, [fetchCartCount]);
 
   // Memoized context value to prevent unnecessary re-renders
   const contextValue = useMemo(() => ({

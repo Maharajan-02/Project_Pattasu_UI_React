@@ -203,10 +203,18 @@ function Home({ searchQuery }) {
 
   // Optimized update quantity with better error handling
   const updateQuantity = useCallback(async (productId, quantity) => {
-    if (!token) {
-      showToast("warn", "Please log in to modify cart");
+    const product = products.find(p => p.id === productId);
+    if (!product) {
+      showToast("error", "Product not found.");
       return;
     }
+
+    if (quantity > product.stockQuantity) {
+      showToast("warn", `Only ${product.stockQuantity} in stock. You can't add more.`);
+      return;
+    }
+
+    if (quantity < 0) return;
 
     setUpdatingProductId(productId);
     try {
@@ -233,7 +241,7 @@ function Home({ searchQuery }) {
     } finally {
       setUpdatingProductId(null);
     }
-  }, [token, fetchCart, fetchCartCount]);
+  }, [token, fetchCart, fetchCartCount, products]);
 
   // Pagination handlers
   const handlePrevPage = useCallback(() => {

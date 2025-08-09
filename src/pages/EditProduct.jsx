@@ -54,8 +54,8 @@ function EditProduct() {
         description: productData.description || "",
         price: productData.price?.toString() || "",
         stockQuantity: productData.stockQuantity?.toString() || "",
-        discount: productData.discount?.toString() || "",
-        active: Boolean(productData.active), // Ensure boolean type
+        discount: productData.discount || "",
+        active: productData.active ?? true, // Use nullish coalescing for default true
         imageUrl: productData.imageUrl || "",
       });
     } catch (err) {
@@ -224,7 +224,7 @@ function EditProduct() {
   }, [imagePreview]);
 
   // Loading state
-  if (isLoading) {
+  if (isLoading || product.name === "") {
     return (
       <div className="max-w-xl mx-auto mt-10 p-6 border rounded shadow bg-white">
         <div className="animate-pulse">
@@ -284,18 +284,29 @@ function EditProduct() {
             required
             disabled={isSubmitting}
           />
-          <input
-            type="number"
-            name="discount"
-            value={product.discount}
-            onChange={handleChange}
-            placeholder="Discount (%)"
-            className="w-full border px-4 py-2 rounded focus:outline-none focus:border-blue-500"
-            min="0"
-            max="100"
-            step="0.01"
-            disabled={isSubmitting}
-          />
+          <div>
+            <input
+              type="number"
+              name="discount"
+              value={product.discount}
+              onChange={handleChange}
+              placeholder="Discount (%)"
+              className="w-full border px-4 py-2 rounded focus:outline-none focus:border-blue-500"
+              min="0"
+              max="100"
+              step="0.01"
+              disabled={isSubmitting}
+            />
+            {/* Discount validation error */}
+            {product.discount !== "" && (
+              (parseFloat(product.discount) < validation.minDiscount ||
+                parseFloat(product.discount) > validation.maxDiscount) && (
+                <p className="text-xs text-red-600 mt-1">
+                  Discount should be between 0 and 100.
+                </p>
+              )
+            )}
+          </div>
         </div>
 
         {/* Price Preview */}
@@ -381,7 +392,7 @@ function EditProduct() {
             />
             <div className="flex-1">
               <p className="text-sm font-medium text-gray-700">New Image Preview</p>
-              <p className="text-xs text-gray-500">{file?.name}</p>
+              <p className="text-xs text-gray-500 mt-1">{file?.name}</p>
               <button
                 type="button"
                 onClick={clearImageSelection}

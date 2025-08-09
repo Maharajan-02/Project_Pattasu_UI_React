@@ -1,21 +1,16 @@
 import { useEffect } from "react";
 import api from "../api/axios";
-import Cookies from "js-cookie";
-import { showToast } from "../context/showToasts"; // <-- Import your toast utility
+import { showToast } from "../context/showToasts";
 
 const AuthValidator = () => {
   useEffect(() => {
     const checkTokenValidity = async () => {
-      const token = Cookies.get("token");
-      if (!token) return;
-
       try {
+        // No need to manually attach token; browser sends HttpOnly cookie automatically
         await api.get("/auth/validate", {
-          headers: { Authorization: `Bearer ${token}` },
+          withCredentials: true, // Ensure cookies are sent if backend is on a different domain
         });
       } catch (err) {
-        Cookies.remove("token");
-        Cookies.remove("role");
         showToast(
           "warn",
           err?.response?.data?.message ||
@@ -30,7 +25,7 @@ const AuthValidator = () => {
     checkTokenValidity();
   }, []);
 
-  return null; // No UI to render
+  return null;
 };
 
 export default AuthValidator;
