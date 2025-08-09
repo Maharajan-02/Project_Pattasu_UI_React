@@ -11,6 +11,7 @@ function AdminDashboard() {
     totalProducts: 0,
     totalOrders: 0,
     pendingOrders: 0,
+    completedOrders: 0,
   });
   const [loading, setLoading] = useState(true);
 
@@ -55,7 +56,7 @@ function AdminDashboard() {
     },
     {
       title: "Manage Products",
-      description: "Edit, update, or remove existing products",
+      description: "Edit, update, or activate/deactivate existing products",
       icon: <FaEdit className="text-blue-600" size={32} />,
       action: () => navigate("/admin/manage-products"),
       bgColor: "bg-blue-50 hover:bg-blue-100",
@@ -121,24 +122,30 @@ function AdminDashboard() {
             {loading ? (
               <div className="text-gray-500">Loading stats...</div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
                 <div className="text-center">
-                  <div className="text-3xl font-bold text-blue-600">
+                  <div className="text-3xl font-bold text-indigo-600">
                     {stats.totalProducts}
                   </div>
                   <div className="text-gray-600">Total Products</div>
                 </div>
                 <div className="text-center">
-                  <div className="text-3xl font-bold text-green-600">
+                  <div className="text-3xl font-bold text-blue-500">
                     {stats.totalOrders}
                   </div>
                   <div className="text-gray-600">Total Orders</div>
                 </div>
                 <div className="text-center">
-                  <div className="text-3xl font-bold text-orange-600">
+                  <div className="text-3xl font-bold text-orange-700">
                     {stats.pendingOrders}
                   </div>
                   <div className="text-gray-600">Pending Orders</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-3xl font-bold text-green-600">
+                    {stats.completedOrders}
+                  </div>
+                  <div className="text-gray-600">Completed Orders</div>
                 </div>
               </div>
             )}

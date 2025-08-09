@@ -8,7 +8,7 @@ import { useNavigate } from "react-router-dom";
 import Cookies from "js-cookie";
 import { showToast } from "../context/showToasts";
 
-// Memoized Product Card Component
+// Memoized Product Card Component with improved alignment
 const ProductCard = React.memo(({ 
   product, 
   quantity, 
@@ -19,73 +19,91 @@ const ProductCard = React.memo(({
   const isOutOfStock = product.stockQuantity === 0;
 
   return (
-    <div className="bg-white shadow-md rounded-lg overflow-hidden flex flex-col justify-between">
-      <img
-        src={product.imageUrl}
-        alt={product.name}
-        className="h-48 w-full object-contain rounded bg-gray-50"
-        loading="lazy" // Lazy loading for better performance
-      />
-      <div className="p-4 flex-grow">
-        <h2 className="text-lg font-semibold">{product.name}</h2>
-        <p className="text-sm text-gray-600 min-h-[48px]">
-          {product.description}
-        </p>
-        
-        {/* Price section with discount logic */}
-        <div className="mt-1">
-          {hasDiscount ? (
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className="text-gray-500 line-through text-sm">
-                ₹{product.price.toFixed(2)}
-              </span>
-              <span className="text-green-600 font-bold">
-                ₹{product.finalPrice.toFixed(2)}
-              </span>
-              <span className="bg-red-500 text-white text-xs px-2 py-1 rounded">
-                {product.discount.toFixed(0)}% OFF
-              </span>
-            </div>
-          ) : (
-            <p className="text-green-600 font-bold">
-              ₹{product.price.toFixed(2)}
-            </p>
-          )}
-        </div>
+    <div className="bg-white shadow-md rounded-lg overflow-hidden h-full flex flex-col">
+      {/* Square Image Container */}
+      <div className="aspect-square bg-gray-50 flex items-center justify-center p-2">
+        <img
+          src={product.imageUrl}
+          alt={product.name}
+          className="max-w-full max-h-full object-contain"
+          loading="lazy"
+        />
       </div>
       
-      <div className="p-4 pt-0">
-        {isOutOfStock ? (
-          <p className="text-red-600 font-semibold">Out of Stock</p>
-        ) : quantity > 0 ? (
-          <div className="flex items-center justify-center gap-4">
-            <button
-              onClick={() => onUpdateQuantity(product.id, quantity - 1)}
-              className="px-3 py-1 text-white bg-red-500 rounded hover:bg-red-600 disabled:opacity-50"
-              disabled={isUpdating}
-            >
-              -
-            </button>
-            <span className="text-md font-semibold min-w-[2rem] text-center">
-              {quantity}
-            </span>
-            <button
-              onClick={() => onUpdateQuantity(product.id, quantity + 1)}
-              className="px-3 py-1 text-white bg-blue-500 rounded hover:bg-blue-600 disabled:opacity-50"
-              disabled={isUpdating}
-            >
-              +
-            </button>
+      {/* Content Section - Fixed Height for Consistent Cards */}
+      <div className="p-4 flex-grow flex flex-col justify-between">
+        {/* Product Info */}
+        <div className="flex-grow">
+          <h2 className="text-lg font-semibold mb-2 line-clamp-2 min-h-[3.5rem]">
+            {product.name}
+          </h2>
+          <p className="text-sm text-gray-600 mb-3 line-clamp-3 min-h-[4rem]">
+            {product.description}
+          </p>
+          
+          {/* Price Section */}
+          <div className="mb-4">
+            {hasDiscount ? (
+              <div className="space-y-1">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-gray-500 line-through text-sm">
+                    ₹{product.price.toFixed(2)}
+                  </span>
+                  <span className="bg-red-500 text-white text-xs px-2 py-1 rounded font-medium">
+                    {product.discount.toFixed(0)}% OFF
+                  </span>
+                </div>
+                <div className="text-green-600 font-bold text-lg">
+                  ₹{product.finalPrice.toFixed(2)}
+                </div>
+              </div>
+            ) : (
+              <div className="text-green-600 font-bold text-lg">
+                ₹{product.price.toFixed(2)}
+              </div>
+            )}
           </div>
-        ) : (
-          <button
-            onClick={() => onUpdateQuantity(product.id, 1)}
-            className="w-full bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:opacity-50 transition-colors"
-            disabled={isUpdating}
-          >
-            {isUpdating ? "Adding..." : "Add to Cart"}
-          </button>
-        )}
+        </div>
+        
+        {/* Action Buttons - Always at Bottom */}
+        <div className="mt-auto">
+          {isOutOfStock ? (
+            <div className="text-center">
+              <p className="text-red-600 font-semibold mb-2">Out of Stock</p>
+              <div className="h-10 bg-gray-100 rounded flex items-center justify-center">
+                <span className="text-gray-500 text-sm">Unavailable</span>
+              </div>
+            </div>
+          ) : quantity > 0 ? (
+            <div className="flex items-center justify-between bg-gray-50 rounded-lg p-2">
+              <button
+                onClick={() => onUpdateQuantity(product.id, quantity - 1)}
+                className="w-8 h-8 flex items-center justify-center text-white bg-red-500 rounded hover:bg-red-600 disabled:opacity-50 transition-colors"
+                disabled={isUpdating}
+              >
+                -
+              </button>
+              <span className="text-lg font-semibold px-4">
+                {quantity}
+              </span>
+              <button
+                onClick={() => onUpdateQuantity(product.id, quantity + 1)}
+                className="w-8 h-8 flex items-center justify-center text-white bg-blue-500 rounded hover:bg-blue-600 disabled:opacity-50 transition-colors"
+                disabled={isUpdating}
+              >
+                +
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={() => onUpdateQuantity(product.id, 1)}
+              className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors font-medium"
+              disabled={isUpdating}
+            >
+              {isUpdating ? "Adding..." : "Add to Cart"}
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );
@@ -99,8 +117,8 @@ function Home({ searchQuery }) {
   const [page, setPage] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
   const [totalProducts, setTotalProducts] = useState(0);
-  const [pageSize, setPageSize] = useState(9);
-  const [pageSizeInput, setPageSizeInput] = useState("9");
+  const [pageSize, setPageSize] = useState(10);
+  const [pageSizeInput, setPageSizeInput] = useState("10");
   const [contact, setContact] = useState(null);
   
   const navigate = useNavigate();
@@ -128,8 +146,8 @@ function Home({ searchQuery }) {
     const timeout = setTimeout(() => {
       const parsed = Number(pageSizeInput);
       if (!pageSizeInput || parsed < 1 || isNaN(parsed)) {
-        setPageSizeInput("9");
-        setPageSize(9);
+        setPageSizeInput("10");
+        setPageSize(10);
       } else if (parsed !== pageSize) {
         setPageSize(parsed);
         setPage(0); // Reset to first page when changing page size
@@ -259,126 +277,213 @@ function Home({ searchQuery }) {
   if (loading) return <Loader />;
 
   return (
-    <div className="p-4">
-      {products.length === 0 ? (
-        <div className="text-center text-gray-600 mt-10">
-          <p className="text-lg">No products found.</p>
-          {searchQuery && (
-            <p className="text-sm mt-2">
-              Try adjusting your search terms or browse all products.
-            </p>
-          )}
-        </div>
-      ) : (
-        <>
-          {/* Cart Button - Only show when cart has items */}
-          {cartInfo.hasItems && (
-            <div className="mb-4 text-right">
-              <button
-                onClick={() => navigate("/cart")}
-                className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition-colors"
-              >
-                🛒 View Cart ({cartInfo.uniqueProductCount} {cartInfo.uniqueProductCount === 1 ? 'item' : 'items'})
-              </button>
-            </div>
-          )}
-
-          {/* Products per page controls */}
-          <div className="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
-            <div className="text-sm text-gray-600">
-              Showing {products.length} of {totalProducts} products
-              {searchQuery && (
-                <span className="ml-2 text-blue-600">
-                  for "{searchQuery}"
-                </span>
-              )}
-            </div>
-            <div className="flex items-center gap-2">
-              <label htmlFor="pageSize" className="text-sm">
-                Products per page:
-              </label>
-              <input
-                id="pageSize"
-                type="number"
-                min={1}
-                max={50}
-                value={pageSizeInput}
-                onChange={handlePageSizeChange}
-                className="w-24 border px-3 py-2 rounded focus:outline-none focus:border-blue-500"
-              />
-            </div>
-          </div>
-
-          {/* Product Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-            {products.map((product) => (
-              <ProductCard
-                key={product.id}
-                product={product}
-                quantity={getQuantity(product.id)}
-                onUpdateQuantity={updateQuantity}
-                isUpdating={updatingProductId === product.id}
-              />
-            ))}
-          </div>
-
-          {/* Pagination */}
-          {totalPages > 1 && (
-            <div className="mt-8 flex justify-center items-center gap-2">
-              <button
-                disabled={page === 0}
-                onClick={handlePrevPage}
-                className="px-4 py-2 bg-gray-300 hover:bg-gray-400 rounded disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              >
-                Prev
-              </button>
-              <span className="px-4 py-2 font-semibold">
-                Page {page + 1} of {totalPages}
-              </span>
-              <button
-                disabled={page + 1 >= totalPages}
-                onClick={handleNextPage}
-                className="px-4 py-2 bg-gray-300 hover:bg-gray-400 rounded disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              >
-                Next
-              </button>
-            </div>
-          )}
-        </>
-      )}
-
-      {/* Contact Section */}
-      <div className="mt-12 max-w-xl mx-auto bg-white shadow rounded p-6">
-        <h3 className="text-xl font-bold mb-4 text-center">Contact Us</h3>
-        {contact ? (
-          <div className="space-y-2">
-            <div className="flex flex-wrap">
-              <span className="font-semibold min-w-[100px]">Shop Name:</span> 
-              <span>{contact.shopName}</span>
-            </div>
-            <div className="flex flex-wrap">
-              <span className="font-semibold min-w-[100px]">Address:</span> 
-              <span>{contact.address}</span>
-            </div>
-            <div className="flex flex-wrap">
-              <span className="font-semibold min-w-[100px]">Phone:</span> 
-              <a href={`tel:${contact.phoneNumber}`} className="text-blue-600 hover:underline">
-                {contact.phoneNumber}
-              </a>
-            </div>
-            <div className="flex flex-wrap">
-              <span className="font-semibold min-w-[100px]">Email:</span> 
-              <a href={`mailto:${contact.mailId}`} className="text-blue-600 hover:underline">
-                {contact.mailId}
-              </a>
+    <div className="min-h-screen bg-gray-50">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        {products.length === 0 ? (
+          <div className="text-center text-gray-600 mt-20">
+            <div className="max-w-md mx-auto">
+              <div className="text-6xl mb-4">🔍</div>
+              <h2 className="text-2xl font-semibold mb-2">No products found</h2>
+              <p className="text-gray-500">
+                {searchQuery 
+                  ? `No results for "${searchQuery}". Try adjusting your search terms.`
+                  : "No products are currently available."
+                }
+              </p>
             </div>
           </div>
         ) : (
-          <p className="text-gray-500 text-center">
-            Loading contact information...
-          </p>
+          <>
+            {/* Top Section - Cart Button & Controls */}
+            <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 mb-8">
+              {/* Left: Search Results Info */}
+              <div className="flex-1">
+                <h1 className="text-2xl font-bold text-gray-900 mb-2">
+                  {searchQuery ? `Search Results` : 'Our Products'}
+                </h1>
+                <div className="text-sm text-gray-600">
+                  Showing {products.length} of {totalProducts} products
+                  {searchQuery && (
+                    <span className="ml-2 text-blue-600 font-medium">
+                      for "{searchQuery}"
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {/* Right: Cart Button & Page Size */}
+              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                {/* Cart Button */}
+                {cartInfo.hasItems && (
+                  <button
+                    onClick={() => navigate("/cart")}
+                    className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors font-medium shadow-md"
+                  >
+                    🛒 View Cart ({cartInfo.uniqueProductCount} {cartInfo.uniqueProductCount === 1 ? 'item' : 'items'})
+                  </button>
+                )}
+
+                {/* Products per page */}
+                <div className="flex items-center gap-2 bg-white px-4 py-2 rounded-lg shadow-sm border">
+                  <label htmlFor="pageSize" className="text-sm font-medium text-gray-700">
+                    Per page:
+                  </label>
+                  <input
+                    id="pageSize"
+                    type="number"
+                    min={1}
+                    max={50}
+                    value={pageSizeInput}
+                    onChange={handlePageSizeChange}
+                    className="w-16 border border-gray-300 px-2 py-1 rounded focus:outline-none focus:border-blue-500 text-center"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Product Grid - Improved Responsive Design */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6 mb-12">
+              {products.map((product) => (
+                <ProductCard
+                  key={product.id}
+                  product={product}
+                  quantity={getQuantity(product.id)}
+                  onUpdateQuantity={updateQuantity}
+                  isUpdating={updatingProductId === product.id}
+                />
+              ))}
+            </div>
+
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <div className="flex justify-center items-center gap-2 mb-12">
+                <button
+                  disabled={page === 0}
+                  onClick={handlePrevPage}
+                  className="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium"
+                >
+                  Previous
+                </button>
+                
+                <div className="flex items-center gap-1">
+                  {/* Page Numbers */}
+                  {[...Array(Math.min(5, totalPages))].map((_, index) => {
+                    let pageNum;
+                    if (totalPages <= 5) {
+                      pageNum = index;
+                    } else if (page < 3) {
+                      pageNum = index;
+                    } else if (page >= totalPages - 3) {
+                      pageNum = totalPages - 5 + index;
+                    } else {
+                      pageNum = page - 2 + index;
+                    }
+                    
+                    return (
+                      <button
+                        key={pageNum}
+                        onClick={() => setPage(pageNum)}
+                        className={`px-3 py-2 rounded-lg font-medium transition-colors ${
+                          page === pageNum
+                            ? 'bg-blue-600 text-white'
+                            : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'
+                        }`}
+                      >
+                        {pageNum + 1}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <button
+                  disabled={page + 1 >= totalPages}
+                  onClick={handleNextPage}
+                  className="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium"
+                >
+                  Next
+                </button>
+              </div>
+            )}
+          </>
         )}
       </div>
+
+      {/* Contact Section - Fixed at Bottom */}
+      <footer className="bg-white border-t border-gray-200 mt-auto">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+          <div className="text-center mb-8">
+            <h3 className="text-2xl font-bold text-gray-900 mb-2">Get in Touch</h3>
+            <p className="text-gray-600">We'd love to hear from you. Contact us for any queries.</p>
+          </div>
+          
+          {contact ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              {/* Contact Info */}
+              <div className="space-y-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                    <span className="text-blue-600 text-lg">🏪</span>
+                  </div>
+                  <div>
+                    <div className="font-semibold text-gray-900">{contact.shopName}</div>
+                    <div className="text-gray-600 text-sm">Store Name</div>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-3">
+                  <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+                    <span className="text-green-600 text-lg">📍</span>
+                  </div>
+                  <div>
+                    <div className="font-semibold text-gray-900">{contact.address}</div>
+                    <div className="text-gray-600 text-sm">Our Location</div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Contact Methods */}
+              <div className="space-y-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
+                    <span className="text-purple-600 text-lg">📞</span>
+                  </div>
+                  <div>
+                    <a 
+                      href={`tel:${contact.phoneNumber}`} 
+                      className="font-semibold text-blue-600 hover:text-blue-700 transition-colors"
+                    >
+                      {contact.phoneNumber}
+                    </a>
+                    <div className="text-gray-600 text-sm">Call us directly</div>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center">
+                    <span className="text-orange-600 text-lg">✉️</span>
+                  </div>
+                  <div>
+                    <a 
+                      href={`mailto:${contact.mailId}`} 
+                      className="font-semibold text-blue-600 hover:text-blue-700 transition-colors"
+                    >
+                      {contact.mailId}
+                    </a>
+                    <div className="text-gray-600 text-sm">Send us an email</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="text-center">
+              <div className="animate-pulse">
+                <div className="h-4 bg-gray-200 rounded w-48 mx-auto mb-2"></div>
+                <div className="h-4 bg-gray-200 rounded w-32 mx-auto"></div>
+              </div>
+            </div>
+          )}
+        </div>
+      </footer>
     </div>
   );
 }

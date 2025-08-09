@@ -10,15 +10,15 @@ function AdminProductList() {
   const [totalProducts, setTotalProducts] = useState(0);
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
-  const [pageSize, setPageSize] = useState(9);
-  const [pageSizeInput, setPageSizeInput] = useState("9");
+  const [pageSize, setPageSize] = useState(10);
+  const [pageSizeInput, setPageSizeInput] = useState("10");
 
   const location = useLocation();
   const navigate = useNavigate();
   const searchParams = new URLSearchParams(location.search);
   const currentPage = parseInt(searchParams.get("page") || 1, 10) - 1;
 
-  const fetchProducts = async (pageNumber = 0, search = "", size = 9) => {
+  const fetchProducts = async (pageNumber = 0, search = "", size = 10) => {
     try {
       const res = await api.get(`/products?page=${pageNumber}&size=${size}&search=${encodeURIComponent(search)}`);
       setProducts(res.data?.content || []);
@@ -40,8 +40,8 @@ function AdminProductList() {
     const timeout = setTimeout(() => {
       const parsed = Number(pageSizeInput);
       if (!pageSizeInput || parsed < 1 || isNaN(parsed)) {
-        setPageSizeInput("9");
-        setPageSize(9);
+        setPageSizeInput("10");
+        setPageSize(10);
       } else {
         setPageSize(parsed);
       }
