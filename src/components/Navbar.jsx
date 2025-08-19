@@ -57,11 +57,11 @@ function Navbar({ onSearch }) {
           <Link to="/" className="flex items-center gap-2 min-w-0">
             <img 
               src="/resources/logo.png" 
-              alt="Surya Pyro Park" 
+              alt="Suriya Pyro Park" 
               className="h-8 w-8 flex-shrink-0" 
             />
             <span className="text-lg sm:text-xl font-bold text-[#C0392B] truncate">
-              Surya Pyro Park
+              Suriya Pyro Park
             </span>
           </Link>
         </div>
