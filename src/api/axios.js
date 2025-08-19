@@ -4,7 +4,7 @@ import { loaderInstance } from "../utils/loaderSingleton";
 import BASE_URL from "../config";
 
 const api = axios.create({
-  baseURL: `${BASE_URL}/api`,
+  baseURL: `${BASE_URL}`,
   withCredentials: true
 });
 

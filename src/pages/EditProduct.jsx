@@ -55,7 +55,14 @@ function EditProduct() {
         price: productData.price?.toString() || "",
         stockQuantity: productData.stockQuantity?.toString() || "",
         discount: productData.discount || "",
-        active: productData.active ?? true, // Use nullish coalescing for default true
+        // Robust normalization for active field:
+        active:
+          productData.active === undefined || productData.active === null
+            ? true // default to true if missing
+            : String(productData.active).toLowerCase() === "true" ||
+              productData.active === true ||
+              productData.active === 1 ||
+              productData.active === "1",
         imageUrl: productData.imageUrl || "",
       });
     } catch (err) {

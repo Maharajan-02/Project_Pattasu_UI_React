@@ -209,6 +209,12 @@ function Home({ searchQuery }) {
       return;
     }
 
+    // Check for login
+    if (!token) {
+      showToast("warn", "Please login to add items to your cart.");
+      return;
+    }
+
     if (quantity > product.stockQuantity) {
       showToast("warn", `Only ${product.stockQuantity} in stock. You can't add more.`);
       return;
